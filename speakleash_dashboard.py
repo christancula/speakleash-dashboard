@@ -37,6 +37,7 @@ for d in sl.datasets:
     category.append(d.category)
     total_size_mb += size_mb
     #Get metrics
+    
     avg_doc_length.append(d.words/d.documents)
     try:
       avg_words_in_sentence.append(d.words/d.sentences)
@@ -84,8 +85,8 @@ row0_spacer1, row0_1, row0_spacer2, row0_2, row0_spacer3 = st.columns(
 
 row1_spacer1, row1_1, row1_spacer2 = st.columns((0.1, 3.2, 0.1))
 
-row1a_space1, row1a_1, row1a_space2, row1a_2, row1a_space3 = st.columns(
-    (0.1, 1, 0.1, 1, 0.1)
+row1a_1, row1a_2 = st.columns(
+    (1, 1)
 )
 
 row2_spacer1, row2_1, row2_spacer2 = st.columns((0.1, 3.2, 0.1))
@@ -136,23 +137,15 @@ with row1_1:
     st.markdown(
         "An open collaboration project to build a data set for Language Modeling with a capacity of at least 1TB comprised of diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data"
     )
-
     
     st.plotly_chart(fig1_1, theme="streamlit", use_container_width=True)
-    #st.markdown('Total size: {} GB of 1TB'.format(total_size_mb/1024),)
 
-st.write("")
 
 with row1a_1:
     st.plotly_chart(fig1a_1, theme="streamlit", use_container_width=True)
 
 with row1a_2:
     st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
-
-def submit_show(choice):
-    #Wiem brzydkie ;-) ale działa - spoko przydatne używamy póżniej co wybrane :)
-    selected = choice.split(",")[0].split(":")[1].strip()
-    st.session_state['selected'] = selected
 
 
 def show_comparison(fig2a_1, filter_choice):
@@ -163,40 +156,32 @@ def show_comparison(fig2a_1, filter_choice):
         st.plotly_chart(fig2a_1, theme="streamlit", use_container_width=True)
     
 
-
-   
-
-
 choice = None
 
 
 with row2_1:
     choice = st.selectbox(
         "Select one of our datasets",
-        datasets, )
+        datasets)
+
+selected_ds = choice.split(",")[0].split(":")[1].strip()     
+       
+with line1_1.container():    
+  if choice:
+      st.header("Dataset: {}".format(selected_ds))
+      st.write(sl.get(selected_ds).manifest)
     
-
-    st.button('Details and stats', key='button_show',
-         on_click=submit_show, args=(choice, ))
-
-
-
-with line1_1:
-    if 'selected' in st.session_state:
-        st.header("Dataset: {}".format(st.session_state['selected']))
-        st.write(sl.get(st.session_state['selected']).manifest)
-
 
 with line1_2:
     
-    if 'selected' in st.session_state:
+    if choice:
 
         counter = 0
         random_step = random.randrange(1, 10)
         txt = ""
         meta = {}
 
-        ds = sl.get(st.session_state['selected']).samples
+        ds = sl.get(selected_ds).samples
         for doc in ds:
             txt = doc['text'] 
             meta = doc['meta']
@@ -215,30 +200,25 @@ filters = ['size','avg doc length','avg sentence length','avg sentences in doc',
 with row3_1:
     filter_choice = st.selectbox(
     "Select filter to compare",
-        filters, )
-    st.button('Update', key='comparison_show',
-         on_click=show_comparison, args=(fig2a_1, filter_choice))
+        filters)
+    if filter_choice:
+      show_comparison(fig2a_1, filter_choice)
 
 
 with row3_2:
-    if 'selected' in st.session_state:
+    if choice:
         st.subheader("Selected dataset characteristics")
         st.write("Metrics compared to average metrics in all datasets (average = 1)")
-
-add_vertical_space()
 
 
 
 with row4_2:
-        if 'selected' in st.session_state:
+        if choice:
             theta = ['avg doc length','avg sentence length','avg sentences in doc',
                     'avg text dynamics','avg nouns to verbs', 'avg stopwords to words']
             
             #Selected dataset metrics compared to average metrics in all datasets
-            r=df[theta].loc[st.session_state['selected']]/(df[theta].sum()/len(sl.datasets))
+            r=df[theta].loc[selected_ds]/(df[theta].sum()/len(sl.datasets))
             radar_df = pd.DataFrame(dict(r=r, theta=theta))
             fig = px.line_polar(radar_df, r=r, theta=theta, line_close=True)
             st.plotly_chart(fig, theme="streamlit", use_container_width=True)
-
-
-add_vertical_space()
