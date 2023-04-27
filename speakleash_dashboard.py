@@ -38,7 +38,10 @@ for d in sl.datasets:
     total_size_mb += size_mb
     #Get metrics
     
-    avg_doc_length.append(d.words/d.documents)
+    try:
+      avg_doc_length.append(d.words/d.documents)
+    except:
+      avg_doc_length.append(None)
     try:
       avg_words_in_sentence.append(d.words/d.sentences)
     except:
