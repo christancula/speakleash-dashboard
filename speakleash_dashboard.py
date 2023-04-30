@@ -8,79 +8,87 @@ from speakleash import Speakleash
 import os
 import random
 
+st.set_page_config(page_title="Speakleash Dashboard", layout="wide")
+
+@st.cache_data()
+def prepare_data():
+
+  base_dir = os.path.join(os.path.dirname(__file__))
+  replicate_to = os.path.join(base_dir, "datasets")
+  sl = Speakleash(replicate_to)
+
+  datasets = []
+  size = []
+  name = []
+  category = []
+  avg_doc_length = []
+  avg_words_in_sentence = []
+  avg_sents_in_docs = []
+  avg_text_dynamics = []
+  avg_nouns_to_verbs = []
+  avg_stopwords_to_words = []
+
+  total_size_mb = 0
+
+  for d in sl.datasets:
+      size_mb = round(d.characters/1024/1024)
+      datasets.append("Dataset: {0}, size: {1} MB, characters: {2}, documents: {3}".format(d.name, size_mb, d.characters, d.documents))
+      size.append(size_mb)
+      name.append(d.name)
+      category.append(d.category)
+      total_size_mb += size_mb
+      #Get metrics
+      
+      try:
+        avg_doc_length.append(d.words/d.documents)
+      except:
+        avg_doc_length.append(0)
+      try:
+        avg_words_in_sentence.append(d.words/d.sentences)
+      except:
+        avg_words_in_sentence.append(0)
+      try:
+        avg_sents_in_docs.append(d.sentences/d.documents)
+      except:
+        avg_sents_in_docs.append(0)
+      try: 
+        avg_text_dynamics.append(d.verbs/d.words)
+      except:
+        avg_text_dynamics.append(0)
+      try: 
+        avg_nouns_to_verbs.append(d.nouns/d.verbs)
+      except:
+        avg_nouns_to_verbs.append(0)
+      try: 
+        avg_stopwords_to_words.append(d.stopwords/d.words)
+      except:
+        avg_stopwords_to_words.append(0)
+
+  data = {
+    "name": name,
+    "category": category,
+    "size": size,
+    "avg doc length": avg_doc_length,
+    "avg sentence length" : avg_words_in_sentence,
+    "avg sentences in doc": avg_sents_in_docs,
+    "avg text dynamics" : avg_text_dynamics,
+    "avg nouns to verbs" : avg_nouns_to_verbs,
+    "avg stopwords to words": avg_stopwords_to_words
+  }
+
+  #Using name as indexer for easier navigation
+  df = pd.DataFrame(data).set_index('name')
+
+  return sl, datasets, df, total_size_mb
+
 #Init
 
-base_dir = os.path.join(os.path.dirname(__file__))
-replicate_to = os.path.join(base_dir, "datasets")
-sl = Speakleash(replicate_to)
+sl, datasets, df, total_size_mb = prepare_data()
 
-#Prepare data
-
-datasets = []
-size = []
-name = []
-category = []
-avg_doc_length = []
-avg_words_in_sentence = []
-avg_sents_in_docs = []
-avg_text_dynamics = []
-avg_nouns_to_verbs = []
-avg_stopwords_to_words = []
-
-total_size_mb = 0
-
-for d in sl.datasets:
-    size_mb = round(d.characters/1024/1024)
-    datasets.append("Dataset: {0}, size: {1} MB, characters: {2}, documents: {3}".format(d.name, size_mb, d.characters, d.documents))
-    size.append(size_mb)
-    name.append(d.name)
-    category.append(d.category)
-    total_size_mb += size_mb
-    #Get metrics
-    
-    try:
-      avg_doc_length.append(d.words/d.documents)
-    except:
-      avg_doc_length.append(None)
-    try:
-      avg_words_in_sentence.append(d.words/d.sentences)
-    except:
-      avg_words_in_sentence.append(None)
-    try:
-      avg_sents_in_docs.append(d.sentences/d.documents)
-    except:
-      avg_sents_in_docs.append(None)
-    try: 
-      avg_text_dynamics.append(d.verbs/d.words)
-    except:
-      avg_text_dynamics.append(None)
-    try: 
-      avg_nouns_to_verbs.append(d.nouns/d.verbs)
-    except:
-      avg_nouns_to_verbs.append(None)
-    try: 
-      avg_stopwords_to_words.append(d.stopwords/d.words)
-    except:
-      avg_stopwords_to_words.append(None)
-
-data = {
-  "name": name,
-  "category": category,
-  "size": size,
-  "avg doc length": avg_doc_length,
-  "avg sentence length" : avg_words_in_sentence,
-  "avg sentences in doc": avg_sents_in_docs,
-  "avg text dynamics" : avg_text_dynamics,
-  "avg nouns to verbs" : avg_nouns_to_verbs,
-  "avg stopwords to words": avg_stopwords_to_words
-}
-
-#Using name as indexer for easier navigation
-df = pd.DataFrame(data).set_index('name')
 
 #Prepare layout
 
-st.set_page_config(page_title="Speakleash Dashboard", layout="wide")
+
 
 row0_spacer1, row0_1, row0_spacer2, row0_2, row0_spacer3 = st.columns(
     (0.1, 1, 0.2, 1, 0.1)
@@ -223,5 +231,6 @@ with row4_2:
             #Selected dataset metrics compared to average metrics in all datasets
             r=df[theta].loc[selected_ds]/(df[theta].sum()/len(sl.datasets))
             radar_df = pd.DataFrame(dict(r=r, theta=theta))
+            print(radar_df.head())
             fig = px.line_polar(radar_df, r=r, theta=theta, line_close=True)
             st.plotly_chart(fig, theme="streamlit", use_container_width=True)
