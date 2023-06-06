@@ -12,6 +12,14 @@ from datetime import datetime
 
 st.set_page_config(page_title="Speakleash Dashboard", layout="wide")
 
+def show_comparison(fig2a_1, filter_choice):
+    
+    fig2a_1 = px.bar(df, x=df.index, y=filter_choice)
+    
+    with row4_1:
+        st.plotly_chart(fig2a_1, theme="streamlit", use_container_width=True)
+
+
 @st.cache_data()
 def prepare_data(date_string):
 
@@ -131,27 +139,19 @@ sl, datasets, df, total_size_mb, total_documents, total_characters, total_senten
 
 
 
-row0_spacer1, row0_1, row0_spacer2, row0_2, row0_spacer3 = st.columns(
-    (0.1, 1, 0.2, 1, 0.1)
-)
+row0_1, row0_2 = st.columns(2)
 
-row1_spacer1, row1_1, row1_spacer2 = st.columns((0.1, 3.2, 0.1))
+row1_1 = st.columns(1)[0]
 
-row1a_1, row1a_2 = st.columns(
-    (1, 1)
-)
+row1a_1, row1a_2 = st.columns(2)
 
-row2_spacer1, row2_1, row2_spacer2 = st.columns((0.1, 3.2, 0.1))
+row2_1 = st.columns(1)[0]
 
-line1_spacer1, line1_1, line1_spacer2, line1_2, line1_spacer2= st.columns((0.1, 1, 0.1, 1, 0.1))
+line1_1, line1_2, = st.columns(2)
 
-row3_space1, row3_1, row3_space2, row3_2, row3_space3 = st.columns(
-    (0.1, 1, 0.1, 1, 0.1)
-)
+row3_1, row3_2 = st.columns(2)
 
-row4_space1, row4_1, row4_space2, row4_2, row4_space3 = st.columns(
-    (0.1, 1, 0.1, 1, 0.1)
-)
+row4_1, row4_2 = st.columns(2)
 
 row0_1.title("Speakleash a.k.a. Spichlerz Dashboard")
 
@@ -159,10 +159,7 @@ row0_1.title("Speakleash a.k.a. Spichlerz Dashboard")
 with row0_2:
     add_vertical_space()
 
-row0_2.subheader(
-    "[WWW](https://speakleash.org/) | [GitHub](https://github.com/speakleash) | [Twitter](https://twitter.com/Speak_Leash)"
-)
-
+row0_2.subheader("[WWW](https://speakleash.org/) | [GitHub](https://github.com/speakleash) | [Twitter](https://twitter.com/Speak_Leash)")
 
 
 fig1_1 = go.Figure(go.Indicator(
@@ -210,23 +207,21 @@ with row1_1:
 
     # Same code as before to create the table
     table_data = {
-        'Total number of documents from all sources': [total_documents],
-        'Total number of characters': [total_characters],
-        'Total number of sentences': [total_sentences],
-        'Total number of words': [total_words],
-        'Total number of verbs': [total_verbs],
-        'Total number of nouns': [total_nouns],
-        'Total number of punctuations': [total_punctuations],
-        'Total number of symbols': [total_symbols],
-        'Total number of stopwords': [total_stopwords],
+        'Total documents': ["{:,}".format(total_documents).replace(",", " ")],
+        'Total characters': ["{:,}".format(total_characters).replace(",", " ")],
+        'Total sentences': ["{:,}".format(total_sentences).replace(",", " ")],
+        'Total words': ["{:,}".format(total_words).replace(",", " ")],
+        'Total verbs': ["{:,}".format(total_verbs).replace(",", " ")],
+        'Total nouns': ["{:,}".format(total_nouns).replace(",", " ")],
+        'Total punctuations': ["{:,}".format(total_punctuations).replace(",", " ")],
+        'Total symbols': ["{:,}".format(total_symbols).replace(",", " ")],
+        'Total stopwords': ["{:,}".format(total_stopwords).replace(",", " ")]
     }
-
+  
     df2 = pd.DataFrame(table_data)
-    
-    st.markdown(
-        '<div class="center">' + df2.to_html(classes='table-responsive', index=False) + '</div>', 
-        unsafe_allow_html=True
-    )
+  
+   
+    st.markdown('<div style="display: flex; justify-content: center;">' + df2.to_html(col_space="auto",justify='center',classes='table-responsive', index=False).replace('<table', '<table style="white-space: nowrap; text-align: center;"') + '</div>',unsafe_allow_html=True)
 
 
     
@@ -240,13 +235,7 @@ with row1a_2:
     st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
 
 
-def show_comparison(fig2a_1, filter_choice):
-    
-    fig2a_1 = px.bar(df, x=df.index, y=filter_choice)
-    
-    with row4_1:
-        st.plotly_chart(fig2a_1, theme="streamlit", use_container_width=True)
-    
+  
 
 choice = None
 
