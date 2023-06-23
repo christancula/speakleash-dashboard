@@ -273,7 +273,7 @@ with line1_2:
 
         st.subheader("Random document (max 200 chars))")
         st.write(ftfy.fix_encoding(txt[:200]))
-        st.write(meta)
+        st.write(ftfy.fix_encoding(meta))
 
 filters = ['size','avg doc length','avg sentence length','avg sentences in doc','avg text dynamics','avg nouns to verbs','avg stopwords to words']
 with row3_1:
