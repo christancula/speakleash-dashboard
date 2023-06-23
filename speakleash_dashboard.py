@@ -8,6 +8,7 @@ from speakleash import Speakleash
 import os
 import random
 from datetime import datetime
+import ftfy
 
 
 st.set_page_config(page_title="Speakleash Dashboard", layout="wide")
@@ -271,7 +272,7 @@ with line1_2:
                 break
 
         st.subheader("Random document (max 200 chars))")
-        st.write(txt[:200])
+        st.write(ftfy.fix_encoding(txt[:200]))
         st.write(meta)
 
 filters = ['size','avg doc length','avg sentence length','avg sentences in doc','avg text dynamics','avg nouns to verbs','avg stopwords to words']
