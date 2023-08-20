@@ -1,11 +1,7 @@
-matplotlib
 streamlit
-numpy>=1.18.5
-pandas
-xmltodict
-urllib3
-seaborn>=0.11.0
-streamlit-lottie
+numpy
+pandas < 2.0.0
 plotly
-streamlit-extras>=0.2.4
+streamlit-extras
 speakleash
+ftfy
