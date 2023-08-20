@@ -1,11 +1,6 @@
-matplotlib
 streamlit
 numpy
 pandas < 2.0.0
-xmltodict
-urllib3
-seaborn
-streamlit-lottie
 plotly
 streamlit-extras
 speakleash

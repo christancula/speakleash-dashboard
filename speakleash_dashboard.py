@@ -6,8 +6,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import seaborn as sns
-import numpy as np
 
 from streamlit_extras.add_vertical_space import add_vertical_space
 from datetime import datetime
@@ -286,8 +284,7 @@ with row4_2:
                 break
 
         st.subheader("Random document (max 200 chars):")
-        #st.write(ftfy.fix_encoding(txt[:200]))
-        st.write(txt[:200])
+        st.write(ftfy.fix_encoding(txt[:200]))
         st.write(meta)
 
 # Facts and trivia
