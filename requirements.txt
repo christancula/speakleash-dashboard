@@ -1,12 +1,10 @@
 matplotlib
 streamlit
 numpy
-pandas < 2.0.0
-xmltodict
-urllib3
-seaborn
+pandas
 streamlit-lottie
 plotly
 streamlit-extras
 speakleash
 ftfy
+stqdm
