@@ -1,7 +1,10 @@
+matplotlib
 streamlit
 numpy
-pandas < 2.0.0
+pandas
+streamlit-lottie
 plotly
 streamlit-extras
 speakleash
 ftfy
+stqdm
