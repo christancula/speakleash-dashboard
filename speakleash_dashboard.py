@@ -15,15 +15,9 @@ from streamlit_extras.grid import grid
 from stqdm import stqdm
 
 
-# Initialization
-# if 'data_show' not in st.session_state:
-#     st.session_state.data_show = pd.DataFrame()
-
-
-
 st.set_page_config(page_title="Speakleash Dashboard", layout="wide", page_icon="http://speakleash.org/wp-content/uploads/2022/12/cropped-sl-favico-black-32x32.png")
 
-print("\n--- START --- START --- START --- START --- START --- START --- START ---\n")
+# print("\n--- START --- START --- START --- START --- START --- START --- START ---\n")
 
 
 @st.cache_data()
@@ -39,6 +33,8 @@ def prepare_data(date_string):
 
     # Gather info about every dataset
     for id, d in stqdm(enumerate(sl.datasets)):
+        
+        # print(f"Name: {d.name} | Docs: {d.documents}")
         # print(sl.get(d.name).manifest)
 
         punctuations = d.punctuations
@@ -92,12 +88,18 @@ def prepare_data(date_string):
                 else:
                     break
         except:
-            tags = {"Inne": d.documents / d.documents * 100}
+            try:
+                tags = {"Inne": d.documents / d.documents * 100}
+            except:
+                tags = {"Inne": 0.0}
 
         if tags:
             pass
         else:
-            tags = {"Rożne": d.documents / d.documents * 100}
+            try:
+                tags = {"Rożne": d.documents / d.documents * 100}
+            except:
+                tags = {"Rożne": 0.0}
 
 
         # Prepare DataFrame with info about Dataset
@@ -129,7 +131,6 @@ def prepare_data(date_string):
                                                     "Manifest": [manifesto]
                                                 }, index=[id])])
 
-
     # Calculations of TOTAL
     total_size_mb = round(dataframe_for_all_datasets["Size_MB"].sum(), 2)
     total_documents = dataframe_for_all_datasets["Documents"].sum()
@@ -149,18 +150,15 @@ def prepare_data(date_string):
     dataframe_show["Quality_HIGH"] = dataframe_show["Quality"].apply(lambda d: d.get('HIGH', 0))
     dataframe_show["Quality"] = dataframe_show["Quality"].apply(lambda d: [v * 100 for v in d.values()])
 
-    # st.session_state.data_show = dataframe_show
-
     return sl, dataframe_for_all_datasets, dataframe_show, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords
 
 
-#Init
+### Init
 
 sl, dataframe_for_all_datasets, dataframe_show, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords = prepare_data(datetime.now().strftime("%m-%d-%Y"))
 
-# print(f"TUTAJ PO FUNKCJI: {st.session_state.data_show}")
 
-#Prepare layout
+### Prepare layout
 
 st.markdown("""
 <style>
@@ -194,11 +192,10 @@ st.markdown("""
 # Secondary Color: #A85E00
 
 
+### Row: 1 --> Title + links to SpeakLeash.org website / GitHub / X (Twitter)
 row0_1, row0_2 = st.columns([0.6,0.4])
 
-# row0_1.title("Speakleash a.k.a. Spichlerz Datasets Dashboard")
-row0_1.markdown("<html><a href='https://speakleash-dashboard-dev-samox-repo-2.streamlit.app/' target='_blank' rel='noopener noreferrer'><h1 style='color: #FDA428;'>Speakleash a.k.a. Spichlerz Datasets Dashboard <sub>STREAMLIT APP</sub></h1></a></html>", unsafe_allow_html=True)
-
+row0_1.markdown("<html><a href='https://speakleash.streamlit.app/' target='_blank' rel='noopener noreferrer'><h1 style='color: #FDA428;'>Speakleash a.k.a. Spichlerz Datasets Dashboard <sub>STREAMLIT APP</sub></h1></a></html>", unsafe_allow_html=True)
 
 with row0_2:
     add_vertical_space()
@@ -210,41 +207,24 @@ with row0_2:
     | 
     <a href="https://github.com/speakleash" target='_blank' rel='noopener noreferrer'>GitHub</a>
     |
-    <a href="https://twitter.com/Speak_Leash" target='_blank' rel='noopener noreferrer'>Twitter</a>
+    <a href="https://twitter.com/Speak_Leash" target='_blank' rel='noopener noreferrer'>X (twitter)</a>
     <br>
     <!-- <p style="font-size: 0.8em;">Streamlit standalone</p> -->
     </div>
     </html>
     """,unsafe_allow_html=True)
 
-# row0_2.subheader("[speakleash.org](https://speakleash.org/) | [GitHub](https://github.com/speakleash) | [Twitter](https://twitter.com/Speak_Leash)")
 
-
-
-# background-image: linear-gradient(to right, #d83232, #d76300, #c08f00, #94b600, #32d832);
-
-# fig1a_1 = px.pie(df, values='size', names=df.index)
-
-# fig2a_1 = px.bar(df, x=df.index, y='size')
-
-
+### Row: 2 --> Project Info + data acquisition timeline + Project data progress Indicator
 row1_1a, row1_1b = st.columns([0.5, 0.5])
 
 with row1_1a:
-    # with st.container():
-    #     st.markdown('<br>', unsafe_allow_html=True)
-    # row1_1a_1, row1_1a_2, row1_1a_3 = st.columns([0.1,0.8,0.1])
-    # with row1_1a_2:
-        # st.write("""<html><div style="text-align: center; ">An open collaboration project to build a data set for Language Modeling with a capacity of at least 1TB comprised of diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data</div></html>""", unsafe_allow_html=True)
     add_vertical_space()
     add_vertical_space()
+
     caption_grid = grid([1], vertical_align="center")
     caption_grid.markdown("""_"An open collaboration project to build a data set for Language Modeling with a capacity of at least 1TB comprised of diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data."_""")
-    # st.markdown('<div class="center-text"><h2>Summary</h2></div>', unsafe_allow_html=True)
-    
-    # streamlit_timeline.timeline(dataframe_for_all_datasets["Creation_Date"])
 
-# TEST MOJ
     weeks_dates = pd.date_range(start=dataframe_show["Creation_Date"].min(), end=dataframe_show["Creation_Date"].max(), freq='W-SUN')
     result_table = pd.DataFrame({"Creation_Date": weeks_dates})
 
@@ -253,7 +233,7 @@ with row1_1a:
                (dataframe_show["Creation_Date"] <= row["Creation_Date"])
         filtered_data = dataframe_show[mask]
         datasets = filtered_data["Dataset"].tolist()
-        total_documents = filtered_data["Documents"].sum()  # Sumowanie dokumentów
+        total_documents = filtered_data["Documents"].sum()  # Sum documents
         return pd.Series({"Datasets": datasets, "Total_Documents": total_documents})
 
     result_table[["Datasets", "Total_Documents"]] = result_table.apply(filter_and_sum, axis=1)
@@ -267,7 +247,7 @@ with row1_1a:
                  labels={'Creation_Date': 'Weeks', 'Documents': 'Total Documents'}, height=300,
                  color_discrete_sequence=px.colors.sequential.Plasma)
 
-    # Dodanie sumarycznej wartości nad słupkami
+    # # Adding a summary value above the bars
     # for idx, row in result_table.iterrows():
     #     fig_test.add_annotation(x=row["Creation_Date"], y=(row["Total_Documents"]+3e5), text=f'{(row["Total_Documents"] / 10e5):.1f}M',  showarrow=False)
     
@@ -298,8 +278,9 @@ with row1_1b:
     st.plotly_chart(fig1_1, theme="streamlit", use_container_width=True)
 
 
-
+### Row: 3 --> Table with summary info about collected data
 row1_2a = st.columns(1)[0]
+
 with row1_2a:
   st.write('<div style="text-align: center"><h4>So far we managed to collect:</h4></div>', unsafe_allow_html=True)
   # Same code as before to create the table
@@ -321,9 +302,10 @@ with row1_2a:
 
 add_vertical_space()
 add_vertical_space()
-row_expander= st.columns(1)[0]
 
-# print(dataframe_show)
+
+### Row: 4 --> Expander with some charts
+row_expander= st.columns(1)[0]
 
 with row_expander:
     
@@ -341,24 +323,21 @@ with row_expander:
             st.plotly_chart(fig1a_1, theme="streamlit", use_container_width=True)
 
         with row_exp_col2:
-            # tag_counts = dataframe_show["Tags"].apply(lambda x: ', '.join(x))
-            # tag_counts = tag_counts.str.split(', ', expand=True).stack().value_counts()
-            # print(tag_counts)
-            # fig1a_2 = px.pie(tag_counts, values=tag_counts.values, names=tag_counts.index, title='Procentowy udział tagów')
             fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Average words per document by Category")
             fig1a_2.update_layout(margin=dict(l=20, t=25, b=20),title_x=0.1)
-            st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)  # use_container_width=True
-
+            st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
 
 add_vertical_space()
+
 st.subheader("", divider="orange")
 
+
+### Row: 5 --> Tabs with search, compare and RAW info about datasets
 st.markdown("<html><h2 style='color: #FDA428;'><b>Search for data you need  <span style='font-size: 0.7em;'>🔍</span></b></h2></html>", unsafe_allow_html=True)
-
-
 
 tab_search, tab_compare, tab_RAW = st.tabs(["Search Datasets...", "Comparing Datasets...", "RAW Table..."])
 
+### Row: 5.1.1 --> Search Tab
 with tab_search:
     
     row_search_1, row_search_2, row_search_3, row_search_4, row_search_5 = st.columns(5)
@@ -404,8 +383,6 @@ with tab_search:
     # print("--------------------- ADD COLUMN")
     # print(search_add_column)
 
-    # dataframe_show_grid = grid([1], vertical_align="center")
-
     dataframe_show = st.data_editor(dataframe_show.loc[
                                                         (dataframe_show["Dataset"].isin(search_by_name)) 
                                                         & (dataframe_show["Category"].isin(search_by_category)) 
@@ -428,14 +405,12 @@ with tab_search:
                     column_order = col_order, # "Quality", "Creation_Date",
                     disabled = dataframe_show.columns.drop("SELECTED"),
                     hide_index=True)
-    
-    # st.write("---")
-    # st.subheader("", divider="orange")
 
     add_vertical_space()
     add_vertical_space()
 
-    # Part -> Get Random Documents
+
+    ### Row: 5.1.2 --> Get random documents
     st.subheader("* Random document (max 200 chars):", divider="gray")
     search_get_random_docs = st.multiselect(label="Select Dataset to get random document:", placeholder="Select Dataset to view a random document...", options=dataframe_show["Dataset"])
     
@@ -455,6 +430,7 @@ with tab_search:
             st.write("---")
 
 
+### Row: 5.2.1 --> Compare Tab
 with tab_compare:
 
     num_rows = dataframe_show.loc[dataframe_show["SELECTED"] == True].shape[0]
@@ -482,9 +458,9 @@ with tab_compare:
                     disabled = dataframe_show.columns, 
                     hide_index=True)
     
-
     add_vertical_space()
     
+
     with st.expander("Some comparison charts..."):
     # with col_manifest:
         if dataframe_show.loc[dataframe_show["SELECTED"] == True].shape[0] > 0:
@@ -508,6 +484,8 @@ with tab_compare:
     add_vertical_space()
     add_vertical_space()
 
+
+    ### Row: 5.2.2 --> Datasets Manifests
     st.subheader("* Datasets manifests:", divider="gray")
     for idx, row in dataframe_show.loc[dataframe_show["SELECTED"] == True].iterrows():
         r1, r2 = st.columns(2)
@@ -519,7 +497,8 @@ with tab_compare:
     add_vertical_space()
     add_vertical_space()
 
-    # Part -> Get Random Documents
+
+    ### Row: 5.2.3 --> Get Random Documents
     st.subheader("* Random document from selected Datasets (max 200 chars):", divider="gray")
     search_get_random_docs_comp = st.multiselect(label="Select Dataset to get random documents:", placeholder="Select Dataset to see a random documents...", options=dataframe_show.loc[dataframe_show["SELECTED"] == True, "Dataset"])
     
@@ -544,6 +523,7 @@ with tab_compare:
     #         add_vertical_space()
 
 
+### Row: 5.3.1 --> RAW Table tab
 with tab_RAW:
     st.dataframe(dataframe_for_all_datasets)
 
@@ -551,23 +531,10 @@ with tab_RAW:
 add_vertical_space()
 add_vertical_space()
 
+
+### Row: 6 --> Dot with JSON
+
 ### --- JSON for GitHub badge --- ###
-
-# file_path = "speakleash_data.json"
-#
-# with open(f"./static/{file_path}", "r") as json_file:
-#     kappa = json.load(json_file)
-# # print(f"{kappa=}")
-# 
-# time_now = datetime.now(timezone.utc)
-# data_to_json = {"datasetsCOUNT": str(int(dataframe_for_all_datasets.shape[0])), "datasetsGB": str(int(round(total_size_mb/1024,0))), "updateUTCdate": datetime.strftime(time_now,"%Y-%m-%d %H:%M %z")}
-# # print(f"{data_to_json=}")
-# 
-# with open(f"./static/{file_path}", "w") as json_file:
-#     json.dump(data_to_json, json_file)
-# 
-# st.markdown(f'<html><a href="./app/static/{file_path}" style="color: #FDA428;">.</a></html>', unsafe_allow_html=True)
-
 
 file_path = "speakleash_data.json"
 time_now = datetime.now(timezone.utc)
