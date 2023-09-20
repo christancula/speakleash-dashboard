@@ -1,5 +1,4 @@
 import os
-import random
 from datetime import datetime, timedelta, timezone
 import json
 # import time
@@ -12,42 +11,88 @@ import ftfy
 import streamlit as st
 from streamlit_extras.add_vertical_space import add_vertical_space
 from streamlit_extras.grid import grid
-from stqdm import stqdm
 
 
 st.set_page_config(page_title="Speakleash Dashboard", layout="wide", page_icon="http://speakleash.org/wp-content/uploads/2022/12/cropped-sl-favico-black-32x32.png")
 
-# print("\n--- START --- START --- START --- START --- START --- START --- START ---\n")
+# print("\n--- START --- START --- START --- START --- START --- START --- START ---")
+print(f"{datetime.now()} : // NEW SESSION / RESTART // --- START ---")
 
 
 @st.cache_data()
 def prepare_data(date_string):
+    # Dummy datetime input string to reset cache daily. Different string triggers cache refresh
 
-    #Dummy datetime input string to reset cache daily. Different string triggers cache refresh
+    print(f"{datetime.now()} : // DEBUG // Func: prepare_data()")
 
     base_dir = os.path.join(os.path.dirname(__file__))
     replicate_to = os.path.join(base_dir, "datasets")
     sl = Speakleash(replicate_to)
 
+    datasets_dates = pd.read_csv("./static/datasets_dates.csv", sep=",", header=0)
+    datasets_dates["Dates"] = pd.to_datetime(datasets_dates["Dates"], utc = True, format = 'ISO8601')
+
     dataframe_for_all_datasets = pd.DataFrame()
 
     # Gather info about every dataset
-    for id, d in stqdm(enumerate(sl.datasets)):
+    for id, d in enumerate(sl.datasets):
         
         # print(f"Name: {d.name} | Docs: {d.documents}")
         # print(sl.get(d.name).manifest)
 
-        punctuations = d.punctuations
-        if isinstance(punctuations, list):
-            d_punctuations = len(punctuations)
-        else:
-            d_punctuations = punctuations
+        try:
+            punctuations = d.punctuations
+            if isinstance(punctuations, list):
+                d_punctuations = len(punctuations)
+            else:
+                d_punctuations = punctuations
+        except:
+            d_punctuations = 0
 
-        symbols = d.symbols
-        if isinstance(symbols, list):
-            d_symbols = len(symbols)
-        else:
-            d_symbols = symbols
+        try:
+            symbols = d.symbols
+            if isinstance(symbols, list):
+                d_symbols = len(symbols)
+            else:
+                d_symbols = symbols
+        except:
+            d_symbols = 0
+        
+        try:
+            sentences = d.sentences
+            if isinstance(sentences, list):
+                d_sentences = len(sentences)
+            else:
+                d_sentences = sentences
+        except:
+            d_sentences = 0
+
+        try:
+            words = d.words
+            if isinstance(words, list):
+                d_words = len(words)
+            else:
+                d_words = words
+        except:
+            d_words = 0
+
+        try:
+            verbs = d.verbs
+            if isinstance(verbs, list):
+                d_verbs = len(verbs)
+            else:
+                d_verbs = verbs
+        except:
+            d_verbs = 0
+
+        try:
+            nouns = d.nouns
+            if isinstance(nouns, list):
+                d_nouns = len(nouns)
+            else:
+                d_nouns = nouns
+        except:
+            d_nouns = 0
 
         try:
             avg_doc_length = d.words / d.documents
@@ -74,46 +119,77 @@ def prepare_data(date_string):
         except:
             avg_stopwords_to_words = 0
 
-        tags = {}
-        manifesto = sl.get(d.name).manifest
+        d_tags = {}
+        d_manifesto = sl.get(d.name).manifest
 
         try:
-            dici = manifesto.get('category=95%')
+            dici = d_manifesto.get('category=95%')
             dici_sort = sorted(dici.items(), key=lambda x: (x[1],x[0]), reverse=True)
 
             for x in dici_sort:
                 calc_temp = round(x[1] / d.documents * 100, 2)
                 if (calc_temp > 1):
-                    tags[x[0]] = calc_temp
+                    d_tags[x[0]] = calc_temp
                 else:
                     break
         except:
             try:
-                tags = {"Inne": d.documents / d.documents * 100}
+                d_tags = {"Inne": d.documents / d.documents * 100}
             except:
-                tags = {"Inne": 0.0}
+                d_tags = {"Inne": 0.0}
 
-        if tags:
+        if d_tags:
             pass
         else:
             try:
-                tags = {"Rożne": d.documents / d.documents * 100}
+                d_tags = {"Rożne": d.documents / d.documents * 100}
             except:
-                tags = {"Rożne": 0.0}
+                d_tags = {"Rożne": 0.0}
 
+        try:
+            try:
+                d_create_date = d_manifesto.get('creation_date', "")
+
+                if d_create_date == "":
+                    # d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
+                    d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
+                    proper_date = False
+                else:
+                    d_create_date = pd.to_datetime(d_create_date) # "%Y-%m-%d %H:%M:%s"
+                    proper_date = True
+            except:
+                d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
+                proper_date = False
+                print(f"- Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
+        except:
+            d_create_date = pd.to_datetime(datetime.fromisoformat('2023-09-13') + timedelta(days=id-155, hours=12))
+            proper_date = False
+            print(f"- Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+
+        try:
+            d_update_date = d_manifesto.get('update_date',"")
+            if d_update_date == "":
+                    d_update_date = d_create_date
+            else:
+                d_update_date = pd.to_datetime(d_update_date)
+        except:
+            d_update_date = d_create_date
+
+        # print(f"Before CONCAT => Data: {d.name} | Date: {d_create_date}\n---")
+        # print(f"Before CONCAT => Data: {d.name} | Date: {d_update_date}\n---")
 
         # Prepare DataFrame with info about Dataset
         dataframe_for_all_datasets = pd.concat([dataframe_for_all_datasets, pd.DataFrame({
                                                     "Dataset": d.name,
                                                     "Size_MB": round(d.characters/1024/1024),
                                                     "Category": d.category,
-                                                    "Tags": [tags],
+                                                    "Tags": [d_tags],
                                                     "Documents": d.documents,
                                                     "Characters": d.characters,
-                                                    "Sentences": d.sentences,
-                                                    "Words": d.words,
-                                                    "Verbs": d.verbs,
-                                                    "Nouns": d.nouns,
+                                                    "Sentences": d_sentences,
+                                                    "Words": d_words,
+                                                    "Verbs": d_verbs,
+                                                    "Nouns": d_nouns,
                                                     "Punctuations": d_punctuations,
                                                     "Symbols": d_symbols,
                                                     "Stopwords": d.stopwords,
@@ -121,15 +197,20 @@ def prepare_data(date_string):
                                                     "Description": d.description,
                                                     "License": d.license,
                                                     "Sources": d.sources,
-                                                    "Creation_Date": datetime.fromisoformat('2022-12-01') + timedelta(days=id),  # d.creation_date,
+                                                    "Creation_Date": d_create_date,
+                                                    "Update_Date": d_update_date,
+                                                    "Proper_Date": proper_date,
                                                     "Avg_Doc_Length": avg_doc_length,
                                                     "Avg_Sentence_Length" : avg_words_in_sentence,
                                                     "Avg_Sentences_in_Doc": avg_sents_in_docs,
                                                     "Avg_Text_Dynamics" : avg_text_dynamics,
                                                     "Avg_Nouns_to_Verbs" : avg_nouns_to_verbs,
                                                     "Avg_Stopwords_to_Words": avg_stopwords_to_words,
-                                                    "Manifest": [manifesto]
+                                                    "Manifest": [d_manifesto]
                                                 }, index=[id])])
+
+        # loop end
+
 
     # Calculations of TOTAL
     total_size_mb = round(dataframe_for_all_datasets["Size_MB"].sum(), 2)
@@ -142,7 +223,6 @@ def prepare_data(date_string):
     total_punctuations = dataframe_for_all_datasets["Punctuations"].sum()
     total_symbols = dataframe_for_all_datasets["Symbols"].sum()
     total_stopwords = dataframe_for_all_datasets["Stopwords"].sum()
-
     
     dataframe_show = dataframe_for_all_datasets.copy(deep=True)
     dataframe_show["SELECTED"] = False
@@ -157,8 +237,12 @@ def prepare_data(date_string):
 
 sl, dataframe_for_all_datasets, dataframe_show, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords = prepare_data(datetime.now().strftime("%m-%d-%Y"))
 
+# Debug table
+# st.dataframe(dataframe_show)
+
 
 ### Prepare layout
+st.subheader("")
 
 st.markdown("""
 <style>
@@ -178,12 +262,9 @@ st.markdown("""
         max-width: 100%;
         overflow-x: auto;
     }
-
     a:hover {
         color:#A85E00;
     }   /* Mouse over link */
-
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -218,6 +299,7 @@ with row0_2:
 ### Row: 2 --> Project Info + data acquisition timeline + Project data progress Indicator
 row1_1a, row1_1b = st.columns([0.5, 0.5])
 
+# Project Info & timeline Bar Chart
 with row1_1a:
     add_vertical_space()
     add_vertical_space()
@@ -225,80 +307,136 @@ with row1_1a:
     caption_grid = grid([1], vertical_align="center")
     caption_grid.markdown("""_"An open collaboration project to build a data set for Language Modeling with a capacity of at least 1TB comprised of diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data."_""")
 
-    weeks_dates = pd.date_range(start=dataframe_show["Creation_Date"].min(), end=dataframe_show["Creation_Date"].max(), freq='W-SUN')
-    result_table = pd.DataFrame({"Creation_Date": weeks_dates})
+    @st.cache_data()
+    def BarChart_Timeline(dataframe_show = dataframe_show):
+        print(f"{datetime.now()} : // DEBUG //Func: BarChart_Timeline()")
+        weeks_dates = pd.date_range(start = dataframe_show["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=7), freq='W-MON')
+        result_table = pd.DataFrame({"Creation_Date_Placeholder": weeks_dates})
+        months_dates = pd.date_range(start = dataframe_show["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=32), freq='M')
+        result_table_months = pd.DataFrame({"Creation_Date_Placeholder": months_dates})
 
-    def filter_and_sum(row):
-        mask = (dataframe_show["Creation_Date"] > row["Creation_Date"] - pd.DateOffset(days=7)) & \
-               (dataframe_show["Creation_Date"] <= row["Creation_Date"])
-        filtered_data = dataframe_show[mask]
-        datasets = filtered_data["Dataset"].tolist()
-        total_documents = filtered_data["Documents"].sum()  # Sum documents
-        return pd.Series({"Datasets": datasets, "Total_Documents": total_documents})
+        # Calculation for WEEKs aggregation
+        def filter_and_sum_weeks(row):
+            mask = (dataframe_show["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = 7)) & \
+                   (dataframe_show["Creation_Date"] <= row["Creation_Date_Placeholder"])
+            filtered_data = dataframe_show[mask]
+            datasets = filtered_data["Dataset"].tolist()
+            total_documents = filtered_data["Documents"].sum()  # Sum of documents
+            total_datasets = len(filtered_data["Documents"])    # Sum of datasets
+            return pd.Series({"Datasets": datasets, "Total_Documents": total_documents, "Total_Datasets": total_datasets})
 
-    result_table[["Datasets", "Total_Documents"]] = result_table.apply(filter_and_sum, axis=1)
+        result_table[["Datasets", "Total_Documents", "Total_Datasets"]] = result_table.apply(filter_and_sum_weeks, axis=1)
 
-    result_table = result_table.explode("Datasets")
-    result_table = result_table.merge(dataframe_show[["Dataset", "Documents"]], how="left", left_on="Datasets", right_on="Dataset")
-    result_table.drop("Dataset", axis=1, inplace=True)
-    result_table = result_table.drop_duplicates()
+        # Calculation for MONTHs aggregation
+        def filter_and_sum_months(row):
+            mask = (dataframe_show["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = row["Creation_Date_Placeholder"].day)) & \
+                   (dataframe_show["Creation_Date"] <= row["Creation_Date_Placeholder"])
+            filtered_data = dataframe_show[mask]
+            datasets = filtered_data["Dataset"].tolist()
+            total_documents = filtered_data["Documents"].sum()  # Sum of documents
+            total_datasets = len(filtered_data["Documents"])    # Sum of datasets
+            return pd.Series({"Datasets": datasets, "Total_Documents": total_documents, "Total_Datasets": total_datasets})
 
-    fig_test = px.bar(result_table, x='Creation_Date', y='Documents', color="Documents", hover_name="Datasets", hover_data=["Total_Documents", "Documents"],
-                 labels={'Creation_Date': 'Weeks', 'Documents': 'Total Documents'}, height=300,
-                 color_discrete_sequence=px.colors.sequential.Plasma)
+        result_table_months[["Datasets", "Total_Documents", "Total_Datasets"]] = result_table_months.apply(filter_and_sum_months, axis=1)
+        result_table_months["Creation_Date_Placeholder"] = result_table_months["Creation_Date_Placeholder"].apply(lambda x: x.replace(day=1))
 
-    # # Adding a summary value above the bars
-    # for idx, row in result_table.iterrows():
-    #     fig_test.add_annotation(x=row["Creation_Date"], y=(row["Total_Documents"]+3e5), text=f'{(row["Total_Documents"] / 10e5):.1f}M',  showarrow=False)
-    
-    fig_test.update_layout(margin=dict(t=10, b=10))
-    
-    st.plotly_chart(fig_test, theme="streamlit", use_container_width=True)
+        # If Chart has to be in MONTHS
+        result_table = result_table_months
+
+        # Don't touch this
+        result_table = result_table.explode("Datasets")
+        result_table = result_table.merge(dataframe_show[["Dataset", "Documents", "Creation_Date"]], how="left", left_on="Datasets", right_on="Dataset")
+        result_table.drop("Dataset", axis=1, inplace=True)
+        result_table = result_table.drop_duplicates()
+
+        # Plotly Bar Chart
+        fig_test = px.bar(result_table, x="Creation_Date_Placeholder", y='Documents', color="Documents", hover_name="Datasets", hover_data=["Total_Documents", "Documents", "Creation_Date"],
+                     labels={"Creation_Date_Placeholder": 'Months of Data Collection', 'Documents': 'Total Documents'}, height=300,
+                     color_discrete_sequence=px.colors.sequential.Plasma)
+
+        # ----------------------------------- #
+        # Adding a summary value above the bars:
+        #
+        # 1) Total Documents in specific time:
+        # for idx, row in result_table.iterrows():
+        #     fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=(row["Total_Documents"]+3e5), text=f'{(row["Total_Documents"] / 10e5):.1f}M',  showarrow=False)
+        #
+        # 2) Total Datasets in specific time:
+        for idx, row in result_table.iterrows():
+            fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=(row["Total_Documents"]+6e5), text=f'{(row["Total_Datasets"])}',  showarrow=False)
+        # ----------------------------------- #
 
 
+        # Last changes to make chart nice and clean
+
+        # labels = pd.unique([datetime.strftime(pd.to_datetime(x), '%b %Y') for x in result_table['Creation_Date'] ])
+        # fig_test.update_xaxes(tickvals = list(range(len(labels))), ticktext = labels)
+        fig_test.update_layout(margin=dict(t=10, b=10))
+
+        # Show chart on Streamlit App
+        st.plotly_chart(fig_test, theme="streamlit", use_container_width=True)
+
+    BarChart_Timeline(dataframe_show)
+
+
+# Indicator with project progress
 with row1_1b:
-    fig1_1 = go.Figure(go.Indicator(
-    value = total_size_mb/1024,
-    number = {'valueformat':'.2f'}, # 'font': {'size': 40} 'suffix': " GB"
-    mode = "gauge+number",
-    title = {'text': "<b>Project data progress</b><br><span style='color: gray; font-size:1em'>#GB of 1TB target</span>", 'font': {"size": 15}},
-    gauge = {'axis': {'range': [None, 1200]},
-            'bar': {'color': "#00488B"},
-            'steps' : [
-                 {'range': [0, 250], 'color': '#EE4E26'},
-                 {'range': [250, 500], 'color': "#FDA428"},
-                 {'range': [500, 750], 'color': "#d8c700"},
-                 {'range': [750, 1000], 'color': "#9EC000"},
-                 {'range': [1000, 1500], 'color': "#279D00"}],
-            'threshold' : {'line': {'color': "red", 'width': 4}, 'thickness': 0.9, 'value': 1024}}))
 
-    fig1_1.update_layout(margin=dict(l=20, r=50, b=10))
+    @st.cache_data()
+    def Gauge_Progress(total_size_mb = total_size_mb):
+        print(f"{datetime.now()} : // DEBUG //Func: Gauge_Progress()")
+        fig1_1 = go.Figure(go.Indicator(
+                value = total_size_mb/1024,
+                number = {'valueformat':'.2f'}, # 'font': {'size': 40} 'suffix': " GB"
+                mode = "gauge+number",
+                title = {'text': f"<b>Project data progress</b><br><span style='color: gray; font-size:1em'>{round(total_size_mb/1024,2)}GB of 1TB target</span>", 'font': {"size": 16}},
+                gauge = {'axis': {'range': [None, 1200]},
+                        'bar': {'color': "#00488B"},
+                        'steps' : [
+                             {'range': [0, 250], 'color': '#EE4E26'},
+                             {'range': [250, 500], 'color': "#FDA428"},
+                             {'range': [500, 750], 'color': "#d8c700"},
+                             {'range': [750, 1000], 'color': "#9EC000"},
+                             {'range': [1000, 1500], 'color': "#279D00"}],
+                        'threshold' : {'line': {'color': "red", 'width': 4}, 'thickness': 0.9, 'value': 1024}}))
 
-    # fig1_1.update_layout(height = 400)
-    st.plotly_chart(fig1_1, theme="streamlit", use_container_width=True)
+        fig1_1.update_layout(margin=dict(l=20, r=50, b=10))
+
+        # fig1_1.update_layout(height = 400)
+        st.plotly_chart(fig1_1, theme="streamlit", use_container_width=True)
+
+    Gauge_Progress(total_size_mb)
 
 
 ### Row: 3 --> Table with summary info about collected data
 row1_2a = st.columns(1)[0]
 
 with row1_2a:
-  st.write('<div style="text-align: center"><h4>So far we managed to collect:</h4></div>', unsafe_allow_html=True)
-  # Same code as before to create the table
-  table_data = {
-      'Total documents': ["{:,}".format(total_documents).replace(",", " ")],
-      'Total characters': ["{:,}".format(total_characters).replace(",", " ")],
-      'Total sentences': ["{:,}".format(total_sentences).replace(",", " ")],
-      'Total words': ["{:,}".format(total_words).replace(",", " ")],
-      'Total verbs': ["{:,}".format(total_verbs).replace(",", " ")],
-      'Total nouns': ["{:,}".format(total_nouns).replace(",", " ")],
-      'Total punctuations': ["{:,}".format(total_punctuations).replace(",", " ")],
-      'Total symbols': ["{:,}".format(total_symbols).replace(",", " ")],
-      'Total stopwords': ["{:,}".format(total_stopwords).replace(",", " ")]
-  }
-  df2 = pd.DataFrame(table_data)
-  st.markdown('<div style="display: flex; justify-content: center;">' + df2.to_html(col_space="auto",justify='center',classes='table-responsive', index=False).replace('<table', '<table style="white-space: nowrap; text-align: center; overflow-x: auto;"') + '</div>',unsafe_allow_html=True)
-  # columns=['Total documents','Total words','Total characters']
-  # st.dataframe(df2, hide_index=True)
+    st.write('<div style="text-align: center"><h5>So far we managed to collect:</h5></div>', unsafe_allow_html=True)
+    
+    @st.cache_data()
+    def Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
+                       total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
+                       total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords):
+        print(f"{datetime.now()} : // DEBUG //Func: Table_Progress()")
+        # Same code as before to create the table
+        table_data = {
+            'Total documents': ["{:,}".format(total_documents).replace(",", " ")],
+            'Total characters': ["{:,}".format(total_characters).replace(",", " ")],
+            'Total sentences': ["{:,}".format(total_sentences).replace(",", " ")],
+            'Total words': ["{:,}".format(total_words).replace(",", " ")],
+            'Total verbs': ["{:,}".format(total_verbs).replace(",", " ")],
+            'Total nouns': ["{:,}".format(total_nouns).replace(",", " ")],
+            'Total punctuations': ["{:,}".format(total_punctuations).replace(",", " ")],
+            'Total symbols': ["{:,}".format(total_symbols).replace(",", " ")],
+            'Total stopwords': ["{:,}".format(total_stopwords).replace(",", " ")]
+        }
+        df2 = pd.DataFrame(table_data)
+        st.markdown('<div style="display: flex; justify-content: center;">' + df2.to_html(col_space="auto",justify='center',classes='table-responsive', index=False).replace('<table', '<table style="white-space: nowrap; text-align: center; overflow-x: auto;"') + '</div>',unsafe_allow_html=True)
+
+    Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
+                       total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
+                       total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords)
 
 add_vertical_space()
 add_vertical_space()
@@ -314,18 +452,26 @@ with row_expander:
         
         row_exp_col1, row_exp_col2 = st.columns(2)
         with row_exp_col1:
-            grouped_data = dataframe_show.groupby('Category').sum(numeric_only=True).reset_index()
-            grouped_data["Size_GB"] = grouped_data["Size_MB"] / 1000
-            fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.2f', title="Total Size of all datasets by Category")
-            fig1a_1.update_layout(xaxis_title='Category', yaxis_title='Total Size [GB]')
-            fig1a_1.update_traces(textangle=0, textposition="outside", cliponaxis=False)
-            fig1a_1.update_layout(margin=dict(r=10, t=25, b=10),title_x=0.1)
-            st.plotly_chart(fig1a_1, theme="streamlit", use_container_width=True)
+            @st.cache_data()
+            def Expander_Chart_1(dataframe_show = dataframe_show):
+                print(f"{datetime.now()} : // DEBUG //Func: Expander_Chart_1()")
+                grouped_data = dataframe_show.groupby('Category').sum(numeric_only=True).reset_index()
+                grouped_data["Size_GB"] = grouped_data["Size_MB"] / 1000
+                fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.2f', title="Total Size of datasets by Category")
+                fig1a_1.update_layout(xaxis_title='Category', yaxis_title='Total Size [GB]')
+                fig1a_1.update_traces(textangle=0, textposition="outside", cliponaxis=False)
+                fig1a_1.update_layout(margin=dict(r=10, t=25, b=10),title_x=0.1)
+                st.plotly_chart(fig1a_1, theme="streamlit", use_container_width=True)
+            Expander_Chart_1(dataframe_show)
 
         with row_exp_col2:
-            fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Average words per document by Category")
-            fig1a_2.update_layout(margin=dict(l=20, t=25, b=20),title_x=0.1)
-            st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
+            @st.cache_data()
+            def Expander_Chart_2(dataframe_show = dataframe_show):
+                print(f"{datetime.now()} : // DEBUG //Func: Expander_Chart_2()")
+                fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Average words per document by Category")
+                fig1a_2.update_layout(margin=dict(l=20, t=25, b=20),title_x=0.1)
+                st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
+            Expander_Chart_2(dataframe_show)
 
 add_vertical_space()
 
@@ -364,7 +510,7 @@ with tab_search:
         search_by_quality = st.slider(label="Volume of High-Quality Docs [%]", min_value=0, max_value=100, value=(0,100))
 
 
-    col_order = ["SELECTED", "Dataset", "Size_MB", "Category", "Tags", "Documents", "Characters", "Avg_Doc_Length", "Quality_HIGH"]
+    col_order = ["SELECTED", "Dataset", "Size_MB", "Category", "Tags", "Documents", "Characters", "Avg_Doc_Length", "Quality_HIGH", "Update_Date"]
     col_add_options = dataframe_show.columns.difference(col_order)
 
     with row_search_5:
@@ -399,19 +545,21 @@ with tab_search:
                         "Avg_Doc_Length": st.column_config.NumberColumn("Avg Docs Length", help="Average is calculated with = words / docs", format="%d"),
                         "Quality_HIGH": st.column_config.ProgressColumn("High Quality Docs", help="Volume of high quality documents in dataset", min_value=0, max_value=1),
                         "Quality": st.column_config.BarChartColumn("Quality = High | Medium | Low", help="Documents quality distribution", y_min=0, y_max=100),
-                        "Creation_Date": st.column_config.DateColumn("Creation Date", help="Date of creation Dataset - should be updated from time to time"),
-                        "SELECTED": st.column_config.CheckboxColumn("Compare", help="Select Datasets to compare in second tab")
+                        "Creation_Date": st.column_config.DateColumn("Creation Date", help="Date of creation Dataset"),
+                        "Update_Date": st.column_config.DateColumn("Update Date", help="Date of updating Dataset - should be updated from time to time"),
+                        "SELECTED": st.column_config.CheckboxColumn("✔", help="Select Datasets to compare in second tab")
                     },
                     column_order = col_order, # "Quality", "Creation_Date",
                     disabled = dataframe_show.columns.drop("SELECTED"),
-                    hide_index=True)
+                    hide_index=True,
+                    use_container_width=False)
 
     add_vertical_space()
     add_vertical_space()
 
 
     ### Row: 5.1.2 --> Get random documents
-    st.subheader("* Random document (max 200 chars):", divider="gray")
+    st.subheader("* Random document (max 200 characters):", divider="gray")
     search_get_random_docs = st.multiselect(label="Select Dataset to get random document:", placeholder="Select Dataset to view a random document...", options=dataframe_show["Dataset"])
     
     if search_get_random_docs:
@@ -440,6 +588,7 @@ with tab_compare:
     with col_table:
         add_vertical_space()
         add_vertical_space()
+        
         st.data_editor(dataframe_show.loc[dataframe_show["SELECTED"] == True], 
                     column_config={
                         "Dataset": st.column_config.TextColumn("Dataset", help="Datasets name"),
@@ -452,6 +601,7 @@ with tab_compare:
                         "Quality_HIGH": st.column_config.ProgressColumn("High Quality Docs", help="Volume of high quality documents in dataset", min_value=0, max_value=1),
                         "Quality": st.column_config.BarChartColumn("Quality = High | Medium | Low", help="Documents quality distribution", y_min=0, y_max=100),
                         "Creation_Date": st.column_config.DateColumn("Creation Date", help="Date of creation Dataset - should be updated from time to time"),
+                        "Update_Date": st.column_config.DateColumn("Update Date", help="Date of updating Dataset - should be updated from time to time"),
                         "SELECTED": st.column_config.CheckboxColumn("Compare", help="Select Datasets to compare in second tab")
                     },
                     column_order = col_order, # "Quality", "Creation_Date",
@@ -537,34 +687,39 @@ add_vertical_space()
 ### --- JSON for GitHub badge --- ###
 
 file_path = "speakleash_data.json"
-time_now = datetime.now(timezone.utc)
 
-data_to_json = {
-    "datasetsCOUNT": str(int(dataframe_for_all_datasets.shape[0])),
-    "datasetsGB": str(int(round(total_size_mb / 1024, 0))),
-    "updateUTCdate": str(datetime.strftime(time_now,"%Y-%m-%d %H:%M %z")),
-}
+@st.cache_data(ttl = 3600)
+def get_json_badge(file_path = file_path):
 
-if os.path.exists(f"./static/{file_path}"):
-    with open(f"./static/{file_path}", "r") as json_file:
-        existing_data = json.load(json_file)
+    time_now = datetime.now(timezone.utc)
 
-    last_update_utc = existing_data.get("updateUTCdate", "")
+    data_to_json = {
+        "datasetsCOUNT": str(int(dataframe_for_all_datasets.shape[0])),
+        "datasetsGB": str(int(round(total_size_mb / 1024, 0))),
+        "updateUTCdate": str(datetime.strftime(time_now,"%Y-%m-%d %H:%M %z")),
+    }
 
-    if last_update_utc:
-        last_update_time = datetime.strptime(last_update_utc, "%Y-%m-%d %H:%M %z")
+    if os.path.exists(f"./static/{file_path}"):
+        with open(f"./static/{file_path}", "r") as json_file:
+            existing_data = json.load(json_file)
+
+        last_update_utc = existing_data.get("updateUTCdate", "")
+
+        if last_update_utc:
+            last_update_time = datetime.strptime(last_update_utc, "%Y-%m-%d %H:%M %z")
+        else:
+            last_update_time = time_now - timedelta(days = 1)
+
+        time_difference = time_now - last_update_time
+
+        if time_difference.total_seconds() > 3600:
+            print(f"{time_now} --> Saving JSON file --> Data: {data_to_json}")
+            with open(f"./static/{file_path}", "w") as json_file:
+                json.dump(data_to_json, json_file)
     else:
-        last_update_time = time_now - timedelta(days = 1)
-
-    time_difference = time_now - last_update_time
-
-    if time_difference.total_seconds() > 3600:
-        print(f"{time_now} --> Saving JSON file")
+        print(f"{time_now} --> Saving JSON file (1-st time) --> Data: {data_to_json}")
         with open(f"./static/{file_path}", "w") as json_file:
             json.dump(data_to_json, json_file)
-else:
-    print(f"{time_now} --> Saving JSON file")
-    with open(f"./static/{file_path}", "w") as json_file:
-        json.dump(data_to_json, json_file)
 
+get_json_badge(file_path)
 st.markdown(f'<html><a href="./app/static/{file_path}" style="color: #FDA428;">.</a></html>', unsafe_allow_html=True)

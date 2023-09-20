@@ -1,10 +1,9 @@
+speakleash
 matplotlib
 streamlit
+streamlit-lottie
+streamlit-extras
 numpy
 pandas
-streamlit-lottie
 plotly
-streamlit-extras
-speakleash
 ftfy
-stqdm
