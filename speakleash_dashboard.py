@@ -152,19 +152,26 @@ def prepare_data(date_string):
 
                 if d_create_date == "":
                     # d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
-                    d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
-                    proper_date = False
+                    try:
+                        d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
+                        proper_date = False
+                    except:
+                        d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01') + timedelta(days=1, hours=12))
+                        proper_date = False
+                        print(f"- Got empty string as date -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+                    # d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
+                    # proper_date = False
                 else:
                     d_create_date = pd.to_datetime(d_create_date) # "%Y-%m-%d %H:%M:%s"
                     proper_date = True
             except:
                 d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
                 proper_date = False
-                print(f"- Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
+                print(f"- Something is wrong with date -> Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
         except:
-            d_create_date = pd.to_datetime(datetime.fromisoformat('2023-09-13') + timedelta(days=id-155, hours=12))
+            d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01') + timedelta(days=1, hours=12))
             proper_date = False
-            print(f"- Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+            print(f"- Can't find nothing -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
 
         try:
             d_update_date = d_manifesto.get('update_date',"")
@@ -309,17 +316,19 @@ with row1_1a:
 
     @st.cache_data()
     def BarChart_Timeline(dataframe_show = dataframe_show):
-        print(f"{datetime.now()} : // DEBUG //Func: BarChart_Timeline()")
-        weeks_dates = pd.date_range(start = dataframe_show["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=7), freq='W-MON')
+        print(f"{datetime.now()} : // DEBUG // Func: BarChart_Timeline()")
+
+        dataframe_with_dates = dataframe_show[dataframe_show['Proper_Date'] == True]
+        weeks_dates = pd.date_range(start = dataframe_with_dates["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=7), freq='W-MON')
         result_table = pd.DataFrame({"Creation_Date_Placeholder": weeks_dates})
-        months_dates = pd.date_range(start = dataframe_show["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=32), freq='M')
+        months_dates = pd.date_range(start = dataframe_with_dates["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=32), freq='M')
         result_table_months = pd.DataFrame({"Creation_Date_Placeholder": months_dates})
 
         # Calculation for WEEKs aggregation
         def filter_and_sum_weeks(row):
-            mask = (dataframe_show["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = 7)) & \
-                   (dataframe_show["Creation_Date"] <= row["Creation_Date_Placeholder"])
-            filtered_data = dataframe_show[mask]
+            mask = (dataframe_with_dates["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = 7)) & \
+                   (dataframe_with_dates["Creation_Date"] <= row["Creation_Date_Placeholder"])
+            filtered_data = dataframe_with_dates[mask]
             datasets = filtered_data["Dataset"].tolist()
             total_documents = filtered_data["Documents"].sum()  # Sum of documents
             total_datasets = len(filtered_data["Documents"])    # Sum of datasets
@@ -329,9 +338,9 @@ with row1_1a:
 
         # Calculation for MONTHs aggregation
         def filter_and_sum_months(row):
-            mask = (dataframe_show["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = row["Creation_Date_Placeholder"].day)) & \
-                   (dataframe_show["Creation_Date"] <= row["Creation_Date_Placeholder"])
-            filtered_data = dataframe_show[mask]
+            mask = (dataframe_with_dates["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = row["Creation_Date_Placeholder"].day)) & \
+                   (dataframe_with_dates["Creation_Date"] <= row["Creation_Date_Placeholder"])
+            filtered_data = dataframe_with_dates[mask]
             datasets = filtered_data["Dataset"].tolist()
             total_documents = filtered_data["Documents"].sum()  # Sum of documents
             total_datasets = len(filtered_data["Documents"])    # Sum of datasets
@@ -345,7 +354,7 @@ with row1_1a:
 
         # Don't touch this
         result_table = result_table.explode("Datasets")
-        result_table = result_table.merge(dataframe_show[["Dataset", "Documents", "Creation_Date"]], how="left", left_on="Datasets", right_on="Dataset")
+        result_table = result_table.merge(dataframe_with_dates[["Dataset", "Documents", "Creation_Date"]], how="left", left_on="Datasets", right_on="Dataset")
         result_table.drop("Dataset", axis=1, inplace=True)
         result_table = result_table.drop_duplicates()
 
@@ -384,7 +393,7 @@ with row1_1b:
 
     @st.cache_data()
     def Gauge_Progress(total_size_mb = total_size_mb):
-        print(f"{datetime.now()} : // DEBUG //Func: Gauge_Progress()")
+        print(f"{datetime.now()} : // DEBUG // Func: Gauge_Progress()")
         fig1_1 = go.Figure(go.Indicator(
                 value = total_size_mb/1024,
                 number = {'valueformat':'.2f'}, # 'font': {'size': 40} 'suffix': " GB"
@@ -418,7 +427,7 @@ with row1_2a:
     def Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
                        total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
                        total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords):
-        print(f"{datetime.now()} : // DEBUG //Func: Table_Progress()")
+        print(f"{datetime.now()} : // DEBUG // Func: Table_Progress()")
         # Same code as before to create the table
         table_data = {
             'Total documents': ["{:,}".format(total_documents).replace(",", " ")],
@@ -454,7 +463,7 @@ with row_expander:
         with row_exp_col1:
             @st.cache_data()
             def Expander_Chart_1(dataframe_show = dataframe_show):
-                print(f"{datetime.now()} : // DEBUG //Func: Expander_Chart_1()")
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_1()")
                 grouped_data = dataframe_show.groupby('Category').sum(numeric_only=True).reset_index()
                 grouped_data["Size_GB"] = grouped_data["Size_MB"] / 1000
                 fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.2f', title="Total Size of datasets by Category")
@@ -467,7 +476,7 @@ with row_expander:
         with row_exp_col2:
             @st.cache_data()
             def Expander_Chart_2(dataframe_show = dataframe_show):
-                print(f"{datetime.now()} : // DEBUG //Func: Expander_Chart_2()")
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_2()")
                 fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Average words per document by Category")
                 fig1a_2.update_layout(margin=dict(l=20, t=25, b=20),title_x=0.1)
                 st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
@@ -676,6 +685,12 @@ with tab_compare:
 ### Row: 5.3.1 --> RAW Table tab
 with tab_RAW:
     st.dataframe(dataframe_for_all_datasets)
+
+    false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] == False]
+    if len(false_rows) > 0:
+        st.error(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column):", icon="🚨")
+        for ind, row in enumerate(false_rows['Dataset']):
+            st.warning(f"Index: {false_rows.index[ind]} | Dataset: {row}", icon="⚠️")
 
 
 add_vertical_space()
