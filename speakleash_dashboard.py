@@ -33,6 +33,7 @@ def prepare_data(date_string):
     datasets_dates["Dates"] = pd.to_datetime(datasets_dates["Dates"], utc = True, format = 'ISO8601')
 
     dataframe_for_all_datasets = pd.DataFrame()
+    tags_sum_docs = {}
 
     # Gather info about every dataset
     for id, d in enumerate(sl.datasets):
@@ -119,19 +120,23 @@ def prepare_data(date_string):
         except:
             avg_stopwords_to_words = 0
 
-        d_tags = {}
+
         d_manifesto = sl.get(d.name).manifest
+        d_tags = {}
 
         try:
             dici = d_manifesto.get('category=95%')
-            dici_sort = sorted(dici.items(), key=lambda x: (x[1],x[0]), reverse=True)
+            dici_sort = dict(sorted(dici.items(), key=lambda x: x[1], reverse=True))
 
-            for x in dici_sort:
-                calc_temp = round(x[1] / d.documents * 100, 2)
+            for key, value in dici_sort.items():
+                calc_temp = round(value / d.documents * 100, 2)
                 if (calc_temp > 1):
-                    d_tags[x[0]] = calc_temp
+                    d_tags[key] = calc_temp
                 else:
                     break
+            
+            tags_sum_docs = {k: tags_sum_docs.get(k, 0) + dici_sort.get(k, 0) for k in set(tags_sum_docs) | set(dici_sort)}
+
         except:
             try:
                 d_tags = {"Inne": d.documents / d.documents * 100}
@@ -146,25 +151,33 @@ def prepare_data(date_string):
             except:
                 d_tags = {"Rożne": 0.0}
 
+
         try:
             try:
                 d_create_date = d_manifesto.get('creation_date', "")
 
                 if d_create_date == "":
                     # d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
-                    d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
-                    proper_date = False
+                    try:
+                        d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
+                        proper_date = False
+                    except:
+                        d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01') + timedelta(days=1, hours=12))
+                        proper_date = False
+                        print(f"- Got empty string as date -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+                    # d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
+                    # proper_date = False
                 else:
                     d_create_date = pd.to_datetime(d_create_date) # "%Y-%m-%d %H:%M:%s"
                     proper_date = True
             except:
                 d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
                 proper_date = False
-                print(f"- Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
+                print(f"- Something is wrong with date -> Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
         except:
-            d_create_date = pd.to_datetime(datetime.fromisoformat('2023-09-13') + timedelta(days=id-155, hours=12))
+            d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01') + timedelta(days=1, hours=12))
             proper_date = False
-            print(f"- Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+            print(f"- Can't find nothing -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
 
         try:
             d_update_date = d_manifesto.get('update_date',"")
@@ -226,16 +239,19 @@ def prepare_data(date_string):
     
     dataframe_show = dataframe_for_all_datasets.copy(deep=True)
     dataframe_show["SELECTED"] = False
+    dataframe_show["Tags_p"] = dataframe_show["Tags"].apply(lambda d: [f"{key} - {value}%" for key, value in d.items()])
     dataframe_show["Tags"] = dataframe_show["Tags"].apply(lambda d: list(d.keys()))
     dataframe_show["Quality_HIGH"] = dataframe_show["Quality"].apply(lambda d: d.get('HIGH', 0))
     dataframe_show["Quality"] = dataframe_show["Quality"].apply(lambda d: [v * 100 for v in d.values()])
 
-    return sl, dataframe_for_all_datasets, dataframe_show, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords
+    tags_sum_table = pd.DataFrame({"Tags": tags_sum_docs.keys(), "Docs_sum": tags_sum_docs.values()}).sort_values(by="Docs_sum", ascending=False)
+
+    return sl, dataframe_for_all_datasets, dataframe_show, tags_sum_table, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords
 
 
 ### Init
 
-sl, dataframe_for_all_datasets, dataframe_show, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords = prepare_data(datetime.now().strftime("%m-%d-%Y"))
+sl, dataframe_for_all_datasets, dataframe_show, tags_sum_table, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords = prepare_data(datetime.now().strftime("%m-%d-%Y"))
 
 # Debug table
 # st.dataframe(dataframe_show)
@@ -309,17 +325,19 @@ with row1_1a:
 
     @st.cache_data()
     def BarChart_Timeline(dataframe_show = dataframe_show):
-        print(f"{datetime.now()} : // DEBUG //Func: BarChart_Timeline()")
-        weeks_dates = pd.date_range(start = dataframe_show["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=7), freq='W-MON')
+        print(f"{datetime.now()} : // DEBUG // Func: BarChart_Timeline()")
+
+        dataframe_with_dates = dataframe_show[dataframe_show['Proper_Date'] == True]
+        weeks_dates = pd.date_range(start = dataframe_with_dates["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=7), freq='W-MON')
         result_table = pd.DataFrame({"Creation_Date_Placeholder": weeks_dates})
-        months_dates = pd.date_range(start = dataframe_show["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=32), freq='M')
+        months_dates = pd.date_range(start = dataframe_with_dates["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=32), freq='M')
         result_table_months = pd.DataFrame({"Creation_Date_Placeholder": months_dates})
 
         # Calculation for WEEKs aggregation
         def filter_and_sum_weeks(row):
-            mask = (dataframe_show["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = 7)) & \
-                   (dataframe_show["Creation_Date"] <= row["Creation_Date_Placeholder"])
-            filtered_data = dataframe_show[mask]
+            mask = (dataframe_with_dates["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = 7)) & \
+                   (dataframe_with_dates["Creation_Date"] <= row["Creation_Date_Placeholder"])
+            filtered_data = dataframe_with_dates[mask]
             datasets = filtered_data["Dataset"].tolist()
             total_documents = filtered_data["Documents"].sum()  # Sum of documents
             total_datasets = len(filtered_data["Documents"])    # Sum of datasets
@@ -329,9 +347,9 @@ with row1_1a:
 
         # Calculation for MONTHs aggregation
         def filter_and_sum_months(row):
-            mask = (dataframe_show["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = row["Creation_Date_Placeholder"].day)) & \
-                   (dataframe_show["Creation_Date"] <= row["Creation_Date_Placeholder"])
-            filtered_data = dataframe_show[mask]
+            mask = (dataframe_with_dates["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = row["Creation_Date_Placeholder"].day)) & \
+                   (dataframe_with_dates["Creation_Date"] <= row["Creation_Date_Placeholder"])
+            filtered_data = dataframe_with_dates[mask]
             datasets = filtered_data["Dataset"].tolist()
             total_documents = filtered_data["Documents"].sum()  # Sum of documents
             total_datasets = len(filtered_data["Documents"])    # Sum of datasets
@@ -345,7 +363,7 @@ with row1_1a:
 
         # Don't touch this
         result_table = result_table.explode("Datasets")
-        result_table = result_table.merge(dataframe_show[["Dataset", "Documents", "Creation_Date"]], how="left", left_on="Datasets", right_on="Dataset")
+        result_table = result_table.merge(dataframe_with_dates[["Dataset", "Documents", "Creation_Date"]], how="left", left_on="Datasets", right_on="Dataset")
         result_table.drop("Dataset", axis=1, inplace=True)
         result_table = result_table.drop_duplicates()
 
@@ -384,7 +402,7 @@ with row1_1b:
 
     @st.cache_data()
     def Gauge_Progress(total_size_mb = total_size_mb):
-        print(f"{datetime.now()} : // DEBUG //Func: Gauge_Progress()")
+        print(f"{datetime.now()} : // DEBUG // Func: Gauge_Progress()")
         fig1_1 = go.Figure(go.Indicator(
                 value = total_size_mb/1024,
                 number = {'valueformat':'.2f'}, # 'font': {'size': 40} 'suffix': " GB"
@@ -418,7 +436,7 @@ with row1_2a:
     def Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
                        total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
                        total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords):
-        print(f"{datetime.now()} : // DEBUG //Func: Table_Progress()")
+        print(f"{datetime.now()} : // DEBUG // Func: Table_Progress()")
         # Same code as before to create the table
         table_data = {
             'Total documents': ["{:,}".format(total_documents).replace(",", " ")],
@@ -454,7 +472,7 @@ with row_expander:
         with row_exp_col1:
             @st.cache_data()
             def Expander_Chart_1(dataframe_show = dataframe_show):
-                print(f"{datetime.now()} : // DEBUG //Func: Expander_Chart_1()")
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_1()")
                 grouped_data = dataframe_show.groupby('Category').sum(numeric_only=True).reset_index()
                 grouped_data["Size_GB"] = grouped_data["Size_MB"] / 1000
                 fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.2f', title="Total Size of datasets by Category")
@@ -467,11 +485,25 @@ with row_expander:
         with row_exp_col2:
             @st.cache_data()
             def Expander_Chart_2(dataframe_show = dataframe_show):
-                print(f"{datetime.now()} : // DEBUG //Func: Expander_Chart_2()")
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_2()")
                 fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Average words per document by Category")
                 fig1a_2.update_layout(margin=dict(l=20, t=25, b=20),title_x=0.1)
                 st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
             Expander_Chart_2(dataframe_show)
+
+#         add_vertical_space()
+        st.divider()
+
+        @st.cache_data()
+        def Expander_Chart_3(tags_sum_table = tags_sum_table):
+            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_3()")
+            fig1a_3 = px.bar(tags_sum_table[0:20], x='Tags', y='Docs_sum',text_auto='.3s', 
+                             title=f"Sum of documents in datasets by Tags (Categories) - TOP 20 Largest Tags [+ {tags_sum_table.shape[0] - 20} more Tags]")
+            fig1a_3.update_layout(xaxis_title='Tags', yaxis_title='Documents (sum)')
+            fig1a_3.update_traces(textangle=0, textposition="outside", cliponaxis=False)
+            fig1a_3.update_layout(margin=dict(r=10, t=25, b=10),title_x=0.2)
+            st.plotly_chart(fig1a_3, theme="streamlit", use_container_width=True)
+        Expander_Chart_3(tags_sum_table)
 
 add_vertical_space()
 
@@ -510,7 +542,7 @@ with tab_search:
         search_by_quality = st.slider(label="Volume of High-Quality Docs [%]", min_value=0, max_value=100, value=(0,100))
 
 
-    col_order = ["SELECTED", "Dataset", "Size_MB", "Category", "Tags", "Documents", "Characters", "Avg_Doc_Length", "Quality_HIGH", "Update_Date"]
+    col_order = ["SELECTED", "Dataset", "Size_MB", "Category", "Tags_p", "Documents", "Characters", "Avg_Doc_Length", "Quality_HIGH", "Update_Date"]
     col_add_options = dataframe_show.columns.difference(col_order)
 
     with row_search_5:
@@ -539,7 +571,8 @@ with tab_search:
                         "Dataset": st.column_config.TextColumn("Dataset", help="Datasets name"),
                         "Size_MB": st.column_config.NumberColumn("Size [MB]",format="%d", help="Dataset size in MB"),  # format="%d"
                         "Category": st.column_config.TextColumn("Category", help="Broader category"),
-                        "Tags": st.column_config.ListColumn("Tags", help="Tags with more than 1% of documents - sorted by percentage", width='small'),
+                        "Tags": st.column_config.ListColumn("Tags", help="Tags related to categorised documents (Tags added if >1% documents)", width='small'),
+                        "Tags_p": st.column_config.ListColumn("Tags [%]", help="Dataset Tags related to categorised documents (Tags added if >1% documents) - sorted by percentage", width='small'),
                         "Documents": st.column_config.NumberColumn("Documents", help="Number of documents in Dataset"),
                         "Characters": st.column_config.NumberColumn("Characters", help="Number of charaters in Dataset"),
                         "Avg_Doc_Length": st.column_config.NumberColumn("Avg Docs Length", help="Average is calculated with = words / docs", format="%d"),
@@ -594,7 +627,8 @@ with tab_compare:
                         "Dataset": st.column_config.TextColumn("Dataset", help="Datasets name"),
                         "Size_MB": st.column_config.NumberColumn("Size [MB]", format="%d", help="Dataset size in MB"),  # format="%d"
                         "Category": st.column_config.TextColumn("Category", help="Broader category"),
-                        "Tags": st.column_config.ListColumn("Tags", help="Tags with more than 1% of documents - sorted by percentage", width='small'),
+                        "Tags": st.column_config.ListColumn("Tags", help="Tags related to categorised documents (Tags added if >1% documents)", width='small'),
+                        "Tags_p": st.column_config.ListColumn("Tags [%]", help="Dataset Tags related to categorised documents (Tags added if >1% documents) - sorted by percentage", width='small'),
                         "Documents": st.column_config.NumberColumn("Documents", help="Number of documents in Dataset"),
                         "Characters": st.column_config.NumberColumn("Characters", help="Number of charaters in Dataset"),
                         "Avg_Doc_Length": st.column_config.NumberColumn("Avg Words / Doc", help="Average is calculated with = words / docs", format="%d"),
@@ -676,6 +710,12 @@ with tab_compare:
 ### Row: 5.3.1 --> RAW Table tab
 with tab_RAW:
     st.dataframe(dataframe_for_all_datasets)
+
+    false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] == False]
+    if len(false_rows) > 0:
+        st.error(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column):", icon="🚨")
+        for ind, row in enumerate(false_rows['Dataset']):
+            st.warning(f"Index: {false_rows.index[ind]} | Dataset: {row}", icon="⚠️")
 
 
 add_vertical_space()
