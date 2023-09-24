@@ -497,7 +497,7 @@ with row_expander:
         @st.cache_data()
         def Expander_Chart_3(tags_sum_table = tags_sum_table):
             print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_3()")
-            fig1a_3 = px.bar(tags_sum_table[0:20], x='Tags', y='Docs_sum',text_auto='.0f', 
+            fig1a_3 = px.bar(tags_sum_table[0:20], x='Tags', y='Docs_sum',text_auto='.3s', 
                              title=f"Sum of documents in datasets by Tags (Categories) - TOP 20 Largest Tags [+ {tags_sum_table.shape[0] - 20} more Tags]")
             fig1a_3.update_layout(xaxis_title='Tags', yaxis_title='Documents (sum)')
             fig1a_3.update_traces(textangle=0, textposition="outside", cliponaxis=False)
