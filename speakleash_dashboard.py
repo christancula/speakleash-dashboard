@@ -13,6 +13,10 @@ from streamlit_extras.add_vertical_space import add_vertical_space
 from streamlit_extras.grid import grid
 
 
+# TODO! : Tabela z sumaryczną wartoscia dokumentów itd. (ta za szeroka)
+# TODO! : Dodanie wykresu typu bar_plot dla quality (HIGH,MEDIUM,LOW)
+
+
 st.set_page_config(page_title="Speakleash Dashboard", layout="wide", page_icon="http://speakleash.org/wp-content/uploads/2022/12/cropped-sl-favico-black-32x32.png")
 
 # print("\n--- START --- START --- START --- START --- START --- START --- START ---")
@@ -256,6 +260,16 @@ sl, dataframe_for_all_datasets, dataframe_show, tags_sum_table, total_size_mb, t
 # Debug table
 # st.dataframe(dataframe_show)
 
+st.markdown("""
+        <style>
+               .block-container {
+                    padding-top: 0rem;
+                    padding-bottom: 0rem;
+                    padding-left: 5rem;
+                    padding-right: 5rem;
+                }
+        </style>
+        """, unsafe_allow_html=True)
 
 ### Prepare layout
 st.subheader("")
@@ -709,7 +723,8 @@ with tab_compare:
 
 ### Row: 5.3.1 --> RAW Table tab
 with tab_RAW:
-    st.dataframe(dataframe_for_all_datasets)
+    #TODO: revisit column "Tags" - streamlit sort dictinary inside dataframe
+    st.dataframe(dataframe_for_all_datasets, column_config={'Tags': st.column_config.Column()})
 
     false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] == False]
     if len(false_rows) > 0:
