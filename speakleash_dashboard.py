@@ -180,7 +180,7 @@ def prepare_data(date_string):
             print(f"- Can't find nothing -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
 
         try:
-            d_update_date = d_manifesto.get('update_date',"")
+            d_update_date = d_manifesto.get('updated_date', "")
             if d_update_date == "":
                     d_update_date = d_create_date
             else:
