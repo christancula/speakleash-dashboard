@@ -143,9 +143,9 @@ def prepare_data(date_string):
 
         except:
             try:
-                d_tags = {"Inne": d.documents / d.documents * 100}
+                d_tags = {"Rożne": d.documents / d.documents * 100}
             except:
-                d_tags = {"Inne": 0.0}
+                d_tags = {"Rożne": 0.0}
 
         if d_tags:
             pass
@@ -246,7 +246,7 @@ def prepare_data(date_string):
     dataframe_show["Tags_p"] = dataframe_show["Tags"].apply(lambda d: [f"{key} - {value}%" for key, value in d.items()])
     dataframe_show["Tags"] = dataframe_show["Tags"].apply(lambda d: list(d.keys()))
     dataframe_show["Quality_HIGH"] = dataframe_show["Quality"].apply(lambda d: d.get('HIGH', 0))
-    dataframe_show["Quality"] = dataframe_show["Quality"].apply(lambda d: [v * 100 for v in d.values()])
+    dataframe_show["Quality"] = dataframe_show["Quality"].apply(lambda d: [int(v * 100) for v in d.values()])
 
     tags_sum_table = pd.DataFrame({"Tags": tags_sum_docs.keys(), "Docs_sum": tags_sum_docs.values()}).sort_values(by="Docs_sum", ascending=False)
 
@@ -263,10 +263,11 @@ sl, dataframe_for_all_datasets, dataframe_show, tags_sum_table, total_size_mb, t
 st.markdown("""
         <style>
                .block-container {
-                    padding-top: 0rem;
-                    padding-bottom: 0rem;
-                    padding-left: 5rem;
-                    padding-right: 5rem;
+                    padding-top: 0%;
+                    padding-bottom: 0%;
+                    padding-left: 3%;
+                    padding-right: 3%;
+                    scrollbar-width: thin;
                 }
         </style>
         """, unsafe_allow_html=True)
@@ -286,15 +287,69 @@ st.markdown("""
         text-align: center;
     }
     .table-responsive {
+        text-align: center;
         font-size: 0.9em;
-        margin-left: auto;
-        margin-right: auto;
-        max-width: 100%;
+        margin-left: 0%;
+        margin-right: 0%;
         overflow-x: auto;
+        -ms-overflow-style: 3px;  /* Internet Explorer 10+ */
+        scrollbar-width: thin;  /* Firefox */
     }
-    a:hover {
-        color:#A85E00;
-    }   /* Mouse over link */
+    .table-responsive::-webkit-scrollbar { 
+        /*display: none;*/  /* Safari and Chrome */
+        width: 6px;
+    }
+
+    #table_id {
+      display: block;
+    }
+
+    #table_id th {
+      display: inline-block;
+    }
+
+    #table_id td {
+        padding-left: 0.7rem; 
+        padding-right: 0.7rem;
+        display: inline-block;
+    }
+
+    a:link {color:#A85E00;}      /* unvisited link */
+    a:hover {color:#FDA428;}   /* Mouse over link */
+    a:visited {color:#A85E00;}  /* visited link */
+    a:active {color:#A85E00;}  /* selected link */
+
+    .image-container {
+      position: relative;
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    .image-container img {
+      vertical-align: middle;
+    }
+
+    .image-container::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 2px;
+      background-color: #FDA428; /* Change this to your desired color */
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .image-container:hover {
+      transform: translateY(-3px); /* Change the value to adjust the upward movement */
+    }
+
+    .image-container:hover::after {
+      transform: scaleX(1);
+    }
+
+/* ---------------------------------------------------------------- */
 </style>
 """, unsafe_allow_html=True)
 
@@ -304,26 +359,31 @@ st.markdown("""
 
 
 ### Row: 1 --> Title + links to SpeakLeash.org website / GitHub / X (Twitter)
-row0_1, row0_2 = st.columns([0.6,0.4])
 
-row0_1.markdown("<html><a href='https://speakleash.streamlit.app/' target='_blank' rel='noopener noreferrer'><h1 style='color: #FDA428;'>Speakleash a.k.a. Spichlerz Datasets Dashboard <sub>STREAMLIT APP</sub></h1></a></html>", unsafe_allow_html=True)
 
-with row0_2:
-    add_vertical_space()
-    st.write(
-    """
-    <html>
-    <div style="text-align: right; font-size: 1.5em;">
-    <a href="https://speakleash.org" target='_blank' rel='noopener noreferrer'>speakleash.org</a>
-    | 
-    <a href="https://github.com/speakleash" target='_blank' rel='noopener noreferrer'>GitHub</a>
-    |
-    <a href="https://twitter.com/Speak_Leash" target='_blank' rel='noopener noreferrer'>X (twitter)</a>
-    <br>
-    <!-- <p style="font-size: 0.8em;">Streamlit standalone</p> -->
-    </div>
-    </html>
-    """,unsafe_allow_html=True)
+st.write(
+"""
+<html>
+<div style="text-align: right; font-size: 1.3em; font-family: 'Inter var', sans-serif; color:#A85E00;">
+<a href="https://speakleash.org" target='_blank' rel='noopener noreferrer'>speakleash.org</a>
+<a href="https://speakleash.streamlit.app/" target='_blank' rel='noopener noreferrer'><img class='image-container' src="https://streamlit.io/images/brand/streamlit-mark-light.svg" alt="Streamlit App" height="25"></a>&nbsp;
+<a href="https://github.com/speakleash" target='_blank' rel='noopener noreferrer'><img class='image-container' src="./app/static/github-mark-white.png" alt="GitHub" width="30" height="30"></a>&nbsp;
+<a href="https://twitter.com/Speak_Leash" target='_blank' rel='noopener noreferrer'><img class='image-container' src="./app/static/X-logo-white.png" alt="X (Twitter)" width="28" height="28"></a>
+<br>
+<!-- <p style="font-size: 0.8em;">Streamlit standalone</p> -->
+</div>
+</html>
+""",unsafe_allow_html=True)
+
+row0_1, row0_2 = st.columns([0.8,0.2])
+
+row0_1.markdown("""<html><a href='https://speakleash.streamlit.app/' target='_blank' rel='noopener noreferrer'><h1 style='color: #FDA428; margin-top: -1rem; font-size: 3.1em;'>SpeakLeash a.k.a. Spichlerz <br>Datasets Dashboard <sub><img src="https://streamlit.io/images/brand/streamlit-mark-color.svg" height="15"></sub></h1></a></html>""", unsafe_allow_html=True) # <img src="https://streamlit.io/images/brand/streamlit-logo-secondary-colormark-lighttext.svg" height="25">
+
+
+# row1_1a1, row1_1b1 = st.columns([0.5, 0.5])
+# with row1_1a1:
+#     st.markdown("""<div style="text-align: center; font-size: 1em; font-family: 'Source Sans Pro', sans-serif; margin-left: 0%; margin-right: 5%;">
+#                         <i>"An open collaboration project to build a data set for Language Modeling with a capacity of at least 1TB comprised of diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data."</i></div>""", unsafe_allow_html=True)
 
 
 ### Row: 2 --> Project Info + data acquisition timeline + Project data progress Indicator
@@ -331,11 +391,12 @@ row1_1a, row1_1b = st.columns([0.5, 0.5])
 
 # Project Info & timeline Bar Chart
 with row1_1a:
+    # add_vertical_space()
+    st.markdown("""<div style="text-align: center; font-size: 1em; font-family: 'Source Sans Pro', sans-serif; margin-left: 0%; margin-right: 5%;">
+                    <i>"SpeakLeash is an open collaboration project to build datasets for Language Modeling with a capacity of at least 1TB containing diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data."</i></div>""", unsafe_allow_html=True)
+    # caption_grid = grid([1], vertical_align="center")
+    
     add_vertical_space()
-    add_vertical_space()
-
-    caption_grid = grid([1], vertical_align="center")
-    caption_grid.markdown("""_"An open collaboration project to build a data set for Language Modeling with a capacity of at least 1TB comprised of diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data."_""")
 
     @st.cache_data()
     def BarChart_Timeline(dataframe_show = dataframe_show):
@@ -372,8 +433,10 @@ with row1_1a:
         result_table_months[["Datasets", "Total_Documents", "Total_Datasets"]] = result_table_months.apply(filter_and_sum_months, axis=1)
         result_table_months["Creation_Date_Placeholder"] = result_table_months["Creation_Date_Placeholder"].apply(lambda x: x.replace(day=1))
 
+        # print(result_table_months.tail(8))
+
         # If Chart has to be in MONTHS
-        result_table = result_table_months
+        result_table = result_table_months.tail(8)
 
         # Don't touch this
         result_table = result_table.explode("Datasets")
@@ -383,7 +446,8 @@ with row1_1a:
 
         # Plotly Bar Chart
         fig_test = px.bar(result_table, x="Creation_Date_Placeholder", y='Documents', color="Documents", hover_name="Datasets", hover_data=["Total_Documents", "Documents", "Creation_Date"],
-                     labels={"Creation_Date_Placeholder": 'Months of Data Collection', 'Documents': 'Total Documents'}, height=300,
+                     labels={"Creation_Date_Placeholder": 'Months of data collection', 'Documents': 'Documents'}, height=300,
+                     title="New datasets every month",
                      color_discrete_sequence=px.colors.sequential.Plasma)
 
         # ----------------------------------- #
@@ -394,16 +458,18 @@ with row1_1a:
         #     fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=(row["Total_Documents"]+3e5), text=f'{(row["Total_Documents"] / 10e5):.1f}M',  showarrow=False)
         #
         # 2) Total Datasets in specific time:
-        for idx, row in result_table.iterrows():
-            fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=(row["Total_Documents"]+6e5), text=f'{(row["Total_Datasets"])}',  showarrow=False)
-        # ----------------------------------- #
+        max_y = result_table["Total_Documents"].max()
 
+        for idx, row in result_table.iterrows():
+            y_coordinate = row["Total_Documents"] + max_y * 0.05
+            fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=y_coordinate, text=f'{(row["Total_Datasets"])}',  showarrow=False)
+        # ----------------------------------- #
 
         # Last changes to make chart nice and clean
 
         # labels = pd.unique([datetime.strftime(pd.to_datetime(x), '%b %Y') for x in result_table['Creation_Date'] ])
         # fig_test.update_xaxes(tickvals = list(range(len(labels))), ticktext = labels)
-        fig_test.update_layout(margin=dict(t=10, b=10))
+        fig_test.update_layout(margin=dict(t=50, b=10, r=1, l=5), title={'x': 0.05, 'y': 0.89})
 
         # Show chart on Streamlit App
         st.plotly_chart(fig_test, theme="streamlit", use_container_width=True)
@@ -421,7 +487,7 @@ with row1_1b:
                 value = total_size_mb/1024,
                 number = {'valueformat':'.2f'}, # 'font': {'size': 40} 'suffix': " GB"
                 mode = "gauge+number",
-                title = {'text': f"<b>Project data progress</b><br><span style='color: gray; font-size:1em'>{round(total_size_mb/1024,2)}GB of 1TB target</span>", 'font': {"size": 16}},
+                title = {'text': f"<b>Project data progress</b><br><span style='color: gray; font-size:1em'>{round(total_size_mb/1024,2)}GB of 1TB target</span>", 'font': {"size": 18}},
                 gauge = {'axis': {'range': [None, 1200]},
                         'bar': {'color': "#00488B"},
                         'steps' : [
@@ -432,7 +498,7 @@ with row1_1b:
                              {'range': [1000, 1500], 'color': "#279D00"}],
                         'threshold' : {'line': {'color': "red", 'width': 4}, 'thickness': 0.9, 'value': 1024}}))
 
-        fig1_1.update_layout(margin=dict(l=20, r=50, b=10))
+        fig1_1.update_layout(margin=dict(l=20, r=35, b=10, t=80), height=400)
 
         # fig1_1.update_layout(height = 400)
         st.plotly_chart(fig1_1, theme="streamlit", use_container_width=True)
@@ -444,13 +510,27 @@ with row1_1b:
 row1_2a = st.columns(1)[0]
 
 with row1_2a:
-    st.write('<div style="text-align: center"><h5>So far we managed to collect:</h5></div>', unsafe_allow_html=True)
+    st.write('<div style="text-align: center;"><h5 style="">So far we managed to collect:</h5></div>', unsafe_allow_html=True)
     
     @st.cache_data()
     def Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
                        total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
                        total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords):
         print(f"{datetime.now()} : // DEBUG // Func: Table_Progress()")
+        
+        def generate_html_table(dataframe):
+            # Start building the HTML table
+            html_table = "<table id='table_id' style='margin-top: -1rem; white-space: nowrap; text-align: center; border-radius: 7px;' class='table-responsive'>"
+            # Add the table data row
+            html_table += "<tr>"
+            for column in dataframe.columns:
+                value = dataframe[column].values[0]
+                html_table += f"<td><b>{column}</b><hr style='margin: 0.25rem;'>{value}</td>"
+            html_table += "</tr>"
+            # Close the HTML table
+            html_table += "</table>"
+            return html_table
+                
         # Same code as before to create the table
         table_data = {
             'Total documents': ["{:,}".format(total_documents).replace(",", " ")],
@@ -464,8 +544,18 @@ with row1_2a:
             'Total stopwords': ["{:,}".format(total_stopwords).replace(",", " ")]
         }
         df2 = pd.DataFrame(table_data)
-        st.markdown('<div style="display: flex; justify-content: center;">' + df2.to_html(col_space="auto",justify='center',classes='table-responsive', index=False).replace('<table', '<table style="white-space: nowrap; text-align: center; overflow-x: auto;"') + '</div>',unsafe_allow_html=True)
-
+        # DJ_IMPREZA = df2.to_html(col_space="auto",justify='center',classes='table-responsive', index=False
+        #                          ).replace('<table', '<table id="table_id" style="white-space: nowrap; text-align: center; border-radius: 10px;"'
+        #                                 ).replace('border="1" ',""
+        #                                 ).replace('class="dataframe table-responsive"', "class='table-responsive'"
+        #                                 # ).replace("<tbody>","").replace("</tbody>",""
+        #                                 # ).replace("<thead>","").replace("</thead>",""
+        #                                 )
+        print(generate_html_table(df2))
+        # print(DJ_IMPREZA)
+        # st.markdown('<div style="display: flex; justify-content: center;">' + DJ_IMPREZA + '</div>',unsafe_allow_html=True)
+        add_vertical_space()
+        st.markdown('<div style="display: flex; justify-content: center;">' + generate_html_table(df2) + '</div>',unsafe_allow_html=True)
     Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
                        total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
                        total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords)
@@ -481,7 +571,6 @@ with row_expander:
     
     with st.expander("More graphs with datasets distribiutions"):
         # st.markdown('<div class="center-text"><h2>Summary</h2></div>', unsafe_allow_html=True)
-        
         row_exp_col1, row_exp_col2 = st.columns(2)
         with row_exp_col1:
             @st.cache_data()
@@ -489,10 +578,11 @@ with row_expander:
                 print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_1()")
                 grouped_data = dataframe_show.groupby('Category').sum(numeric_only=True).reset_index()
                 grouped_data["Size_GB"] = grouped_data["Size_MB"] / 1000
-                fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.2f', title="Total Size of datasets by Category")
-                fig1a_1.update_layout(xaxis_title='Category', yaxis_title='Total Size [GB]')
-                fig1a_1.update_traces(textangle=0, textposition="outside", cliponaxis=False)
-                fig1a_1.update_layout(margin=dict(r=10, t=25, b=10),title_x=0.1)
+                fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.1f', title="Total Size of datasets by Category")
+                fig1a_1.update_traces(textangle=0, textposition="outside", cliponaxis=False) # marker_color='#FDA428'
+                fig1a_1.update_layout(margin=dict(r=10, t=50, b=10),
+                                      xaxis_title='Category', yaxis_title='Total Size [GB]', 
+                                      title_x=0.0, title_y=0.93)
                 st.plotly_chart(fig1a_1, theme="streamlit", use_container_width=True)
             Expander_Chart_1(dataframe_show)
 
@@ -500,24 +590,57 @@ with row_expander:
             @st.cache_data()
             def Expander_Chart_2(dataframe_show = dataframe_show):
                 print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_2()")
-                fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Average words per document by Category")
-                fig1a_2.update_layout(margin=dict(l=20, t=25, b=20),title_x=0.1)
+                fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Avg words / document by Category")
+                # fig1a_2.update_traces(marker_color='#FDA428')
+                fig1a_2.update_layout(margin=dict(l=20, t=50, b=20),title_x=0.0, title_y=0.93)
                 st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
             Expander_Chart_2(dataframe_show)
 
-#         add_vertical_space()
+        # add_vertical_space()
+        st.divider()
+
+        top_chart_int = st.slider(label="Select number of top Tags", min_value=2, max_value=30, value=10, step=1)
+
+        @st.cache_data()
+        def Expander_Chart_3(tags_sum_table = tags_sum_table, top_chart_int = top_chart_int):
+            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_3()")
+            fig1a_3 = px.bar(tags_sum_table[0:top_chart_int], x='Tags', y='Docs_sum',text_auto='.2s', 
+                             title=f"Sum of documents by Tags - TOP {top_chart_int} [+ {tags_sum_table.shape[0] - top_chart_int} more Tags]")
+            fig1a_3.update_layout(xaxis_title='Tags', yaxis_title='Documents (sum)')
+            fig1a_3.update_traces(textangle=0, textposition="outside", cliponaxis=False)
+            fig1a_3.update_layout(margin=dict(r=10, t=60, b=10),title_x=0.0, title_y=0.93)
+            st.plotly_chart(fig1a_3, theme="streamlit", use_container_width=True)
+        Expander_Chart_3(tags_sum_table, top_chart_int)
+
         st.divider()
 
         @st.cache_data()
-        def Expander_Chart_3(tags_sum_table = tags_sum_table):
-            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_3()")
-            fig1a_3 = px.bar(tags_sum_table[0:20], x='Tags', y='Docs_sum',text_auto='.3s', 
-                             title=f"Sum of documents in datasets by Tags (Categories) - TOP 20 Largest Tags [+ {tags_sum_table.shape[0] - 20} more Tags]")
-            fig1a_3.update_layout(xaxis_title='Tags', yaxis_title='Documents (sum)')
-            fig1a_3.update_traces(textangle=0, textposition="outside", cliponaxis=False)
-            fig1a_3.update_layout(margin=dict(r=10, t=25, b=10),title_x=0.2)
-            st.plotly_chart(fig1a_3, theme="streamlit", use_container_width=True)
-        Expander_Chart_3(tags_sum_table)
+        def Expander_Chart_0(dataframe_show = dataframe_show):
+            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_0()")
+            df_chart = pd.DataFrame()
+            df_chart['Category'] = dataframe_show['Category']
+            df_chart[['HIGH', 'MEDIUM', 'LOW']] = dataframe_show['Quality'].apply(pd.Series) / 100.0
+            df_chart_combine = df_chart.groupby('Category').mean()
+            df_chart_solo = df_chart[['HIGH', 'MEDIUM', 'LOW']].mean().to_frame('SpeakLeash').T 
+            df_chart_combine = pd.concat([df_chart_solo, df_chart_combine], axis=0)
+            df_chart_combine = df_chart_combine.round(4)
+            # print(df_chart_combine)
+            df_long = df_chart_combine.reset_index().melt(id_vars='index', var_name='Category', value_name='Value')
+            df_long.columns = ['Category', 'Quality', 'Value']            
+            df_swapped = pd.concat([df_long[df_long['Quality'] == 'LOW'], 
+                                    df_long[df_long['Quality'] == 'MEDIUM'], 
+                                    df_long[df_long['Quality'] == 'HIGH']])
+            color_map = {'LOW': '#7B7B7B', 'MEDIUM': '#A85E00', 'HIGH': '#FDA428'}
+
+            fig1a_0 = px.bar(df_swapped, x='Category', y='Value', color='Quality', 
+                             text_auto='.0%', title="Average Quality in Categories",
+                             color_discrete_map=color_map)
+            fig1a_0.update_traces(textangle=0, textposition="inside", cliponaxis=False)
+            fig1a_0.update_layout(xaxis_title='Category', yaxis_title='Documents Quality')
+            fig1a_0.update_layout(margin=dict(r=10, t=90, b=10),title_x=0.0, title_y=0.93,
+                                  legend=dict(orientation='h', yanchor='top', y=1.14, x=-0.03), legend_traceorder="reversed")
+            st.plotly_chart(fig1a_0, theme="streamlit", use_container_width=True)
+        Expander_Chart_0(dataframe_show)
 
 add_vertical_space()
 
@@ -527,7 +650,7 @@ st.subheader("", divider="orange")
 ### Row: 5 --> Tabs with search, compare and RAW info about datasets
 st.markdown("<html><h2 style='color: #FDA428;'><b>Search for data you need  <span style='font-size: 0.7em;'>🔍</span></b></h2></html>", unsafe_allow_html=True)
 
-tab_search, tab_compare, tab_RAW = st.tabs(["Search Datasets...", "Comparing Datasets...", "RAW Table..."])
+tab_search, tab_compare, tab_RAW = st.tabs(["Search Datasets...", "Selected...", "RAW Table..."])
 
 ### Row: 5.1.1 --> Search Tab
 with tab_search:
@@ -599,7 +722,7 @@ with tab_search:
                     column_order = col_order, # "Quality", "Creation_Date",
                     disabled = dataframe_show.columns.drop("SELECTED"),
                     hide_index=True,
-                    use_container_width=False)
+                    use_container_width=True)
 
     add_vertical_space()
     add_vertical_space()
@@ -654,7 +777,8 @@ with tab_compare:
                     },
                     column_order = col_order, # "Quality", "Creation_Date",
                     disabled = dataframe_show.columns, 
-                    hide_index=True)
+                    hide_index=True,
+                    use_container_width=True)
     
     add_vertical_space()
     
@@ -725,13 +849,22 @@ with tab_compare:
 with tab_RAW:
     
     # TODO! : revisit column "Tags" - streamlit sort dictinary inside dataframe
-    st.dataframe(dataframe_for_all_datasets, column_config={'Tags': st.column_config.Column()})
+    st.dataframe(dataframe_for_all_datasets, column_config={'Tags': st.column_config.Column()}, use_container_width=True)
+
+    empty_quality = dataframe_for_all_datasets[dataframe_for_all_datasets["Quality"] == {}]
+    if len(empty_quality) > 0:
+        for ind, row in enumerate(empty_quality['Dataset']):
+            st.error(f"Empty Quality Index! Check index: {empty_quality.index[ind]} → Dataset: {row}", icon="🚨")
 
     false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] == False]
     if len(false_rows) > 0:
-        st.error(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column):", icon="🚨")
+        empty_dates = ""
         for ind, row in enumerate(false_rows['Dataset']):
-            st.warning(f"Index: {false_rows.index[ind]} | Dataset: {row}", icon="⚠️")
+            # st.warning(f"Index: {false_rows.index[ind]} | Dataset: {row}", icon="⚠️")
+            empty_dates = empty_dates + f" '{row}' |"
+
+        st.warning(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column): {empty_dates}", icon="⚠️")
+        # st.error(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column): {empty_dates}", icon="🚨")
 
 
 add_vertical_space()
