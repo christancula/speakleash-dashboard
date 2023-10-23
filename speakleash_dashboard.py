@@ -313,6 +313,9 @@ st.markdown("""
         padding-right: 0.7rem;
         display: inline-block;
     }
+    #table_id td:hover {
+        color:#FDA428;
+    }
 
     a:link {color:#A85E00;}      /* unvisited link */
     a:hover {color:#FDA428;}   /* Mouse over link */
