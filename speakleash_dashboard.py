@@ -1,4 +1,5 @@
 """ SpeakLeash Datasets Dashboard - Info about collected GBs, Quality and Datasets information"""
+import sys
 import os
 from datetime import datetime, timedelta, timezone
 import json
@@ -179,9 +180,14 @@ def Prepare_Data(date_string):
                 proper_date = False
                 # print(f"- Something is wrong with date -> Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
         except:
-            d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01') + timedelta(days=1, hours=12))
+            d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
             proper_date = False
             # print(f"- Can't find nothing -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+
+        try:
+            d_create_date = pd.to_datetime(d_create_date)
+        except Exception as e:
+            print("// ERROR: ", e)
 
         try:
             d_update_date = d_manifesto.get('update_date',"")
@@ -191,6 +197,11 @@ def Prepare_Data(date_string):
                 d_update_date = pd.to_datetime(d_update_date)
         except:
             d_update_date = d_create_date
+
+        try:
+            d_update_date = pd.to_datetime(d_update_date)
+        except Exception as e:
+            print("// ERROR: ", e)
 
         # print(f"Before CONCAT => Data: {d.name} | Date: {d_create_date}\n---")
         # print(f"Before CONCAT => Data: {d.name} | Date: {d_update_date}\n---")
@@ -407,7 +418,7 @@ with row1_1a:
         start_timer = time.perf_counter()
         print(f"{datetime.now()} : // DEBUG // Func: BarChart_Timeline()")
 
-        dataframe_with_dates = dataframe_show[dataframe_show['Proper_Date'] is True]
+        dataframe_with_dates = dataframe_show[dataframe_show['Proper_Date'] == True]
         dataframe_with_dates = dataframe_with_dates[["Dataset", "Size_MB", "Category", "Documents", "Creation_Date"]]
 
         # Calculation for MONTHs aggregation
@@ -763,7 +774,7 @@ with tab_search:
 ### Row: 5.2.1 --> Compare Tab
 with tab_compare:
 
-    num_rows = dataframe_show.loc[dataframe_show["SELECTED"] is True].shape[0]
+    num_rows = dataframe_show.loc[dataframe_show["SELECTED"] == True].shape[0]
 
     col_table, col_manifest = st.columns([0.99, 0.01])
 
@@ -771,7 +782,7 @@ with tab_compare:
         add_vertical_space()
         add_vertical_space()
 
-        st.data_editor(dataframe_show.loc[dataframe_show["SELECTED"] is True],
+        st.data_editor(dataframe_show.loc[dataframe_show["SELECTED"] == True],
                     column_config={
                         "Dataset": st.column_config.TextColumn("Dataset", help="Datasets name"),
                         "Size_MB": st.column_config.NumberColumn("Size [MB]", format="%d", help="Dataset size in MB"),  # format="%d"
@@ -797,11 +808,11 @@ with tab_compare:
 
     with st.expander("Some comparison charts..."):
     # with col_manifest:
-        if dataframe_show.loc[dataframe_show["SELECTED"] is True].shape[0] > 0:
+        if dataframe_show.loc[dataframe_show["SELECTED"] == True].shape[0] > 0:
             theta = ["Avg_Doc_Length", "Avg_Sentence_Length", "Avg_Sentences_in_Doc", "Avg_Text_Dynamics", "Avg_Nouns_to_Verbs", "Avg_Stopwords_to_Words"]
             comp_df = pd.DataFrame()
 
-            for idx, row in dataframe_show.loc[dataframe_show["SELECTED"] is True].iterrows():
+            for idx, row in dataframe_show.loc[dataframe_show["SELECTED"] == True].iterrows():
                 r_r = row[theta] / (dataframe_show[theta].sum() / len(sl.datasets))
                 r_data = pd.DataFrame({"r": r_r[theta].T, "theta": theta}).reset_index(drop=True)
                 r_data["Dataset"] = row["Dataset"]
@@ -821,7 +832,7 @@ with tab_compare:
 
     ### Row: 5.2.2 --> Datasets Manifests
     st.subheader("* Datasets manifests:", divider="gray")
-    for idx, row in dataframe_show.loc[dataframe_show["SELECTED"] is True].iterrows():
+    for idx, row in dataframe_show.loc[dataframe_show["SELECTED"] == True].iterrows():
         r1, r2 = st.columns(2)
         with r1:
             st.write("Dataset: ",row["Dataset"])
@@ -834,7 +845,7 @@ with tab_compare:
 
     ### Row: 5.2.3 --> Get Random Documents
     st.subheader("* Random document from selected Datasets (max 200 chars):", divider="gray")
-    search_get_random_docs_comp = st.multiselect(label="Select Dataset to get random documents:", placeholder="Select Dataset to see a random documents...", options=dataframe_show.loc[dataframe_show["SELECTED"] is True, "Dataset"])
+    search_get_random_docs_comp = st.multiselect(label="Select Dataset to get random documents:", placeholder="Select Dataset to see a random documents...", options=dataframe_show.loc[dataframe_show["SELECTED"] == True, "Dataset"])
 
     if search_get_random_docs_comp:
         for dataset_random_doc in search_get_random_docs_comp:
@@ -864,7 +875,7 @@ with tab_RAW:
         for ind, row in enumerate(empty_quality['Dataset']):
             st.error(f"Empty Quality Index! Check index: {empty_quality.index[ind]} → Dataset: {row}", icon="🚨")
 
-    false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] is False]
+    false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] == False]
     if len(false_rows) > 0:
         empty_dates = ""
         for ind, row in enumerate(false_rows['Dataset']):
@@ -926,3 +937,6 @@ def get_json_badge(file_path = file_path):
 
 get_json_badge(file_path)
 st.markdown(f'<html><a href="./app/static/{file_path}" style="color: #FDA428;">.</a></html>', unsafe_allow_html=True)
+
+# Force print to nohup.out / console - if some weird buffering occured
+sys.stdout.flush()
