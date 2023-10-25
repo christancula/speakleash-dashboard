@@ -580,7 +580,7 @@ with row_expander:
                 grouped_data["Size_GB"] = grouped_data["Size_MB"] / 1000
                 fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.1f', title="Total Size of datasets by Category")
                 fig1a_1.update_traces(textangle=0, textposition="outside", cliponaxis=False) # marker_color='#FDA428'
-                fig1a_1.update_layout(margin={"r": 10, "t": 50, "b": 10},
+                fig1a_1.update_layout(margin={"r": 10, "t": 60, "b": 10},
                                       xaxis_title='Category', yaxis_title='Total Size [GB]',
                                       title_x=0.0, title_y=0.93)
                 st.plotly_chart(fig1a_1, theme="streamlit", use_container_width=True)
@@ -643,7 +643,7 @@ with row_expander:
             df_chart['Category'] = dataframe_show['Category']
             df_chart[['HIGH', 'MEDIUM', 'LOW']] = pd.DataFrame(dataframe_show['Quality'].tolist()) / 100.0
             df_chart_combine = df_chart.groupby('Category').mean()
-            df_chart_solo = df_chart[['HIGH', 'MEDIUM', 'LOW']].mean().to_frame('SpeakLeash').T
+            df_chart_solo = df_chart[['HIGH', 'MEDIUM', 'LOW']].mean().to_frame('SpeakLeash (All Data)').T
             df_chart_combine = pd.concat([df_chart_solo, df_chart_combine], axis=0)
             df_chart_combine = df_chart_combine.round(4)
             df_long = df_chart_combine.reset_index().melt(id_vars='index', var_name='Category', value_name='Value')
@@ -658,8 +658,8 @@ with row_expander:
                              color_discrete_map=color_map)
             fig1a_0.update_traces(textangle=0, textposition="inside", cliponaxis=False)
             fig1a_0.update_layout(xaxis_title='Category', yaxis_title='Documents Quality',
-                                    margin={"r": 10, "t": 90, "b": 10},title_x=0.0, title_y=0.93,
-                                    legend={"orientation": 'h', "yanchor": 'top', "y": 1.14, "x": -0.03}, legend_traceorder="reversed")
+                                    margin={"r": 10, "t": 105, "b": 10},title_x=0.0, title_y=0.93,
+                                    legend={"orientation": 'h', "yanchor": 'top', "y": 1.20, "x": -0.03}, legend_traceorder="reversed")
             st.plotly_chart(fig1a_0, theme="streamlit", use_container_width=True)
             end_timer = time.perf_counter()
             print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_4() = {(end_timer - start_timer):.3f} sec")
