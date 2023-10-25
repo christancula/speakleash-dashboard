@@ -1,7 +1,9 @@
+""" SpeakLeash Datasets Dashboard - Info about collected GBs, Quality and Datasets information"""
+import sys
 import os
 from datetime import datetime, timedelta, timezone
 import json
-# import time
+import time
 
 from speakleash import Speakleash
 import pandas as pd
@@ -10,7 +12,6 @@ import plotly.graph_objects as go
 import ftfy
 import streamlit as st
 from streamlit_extras.add_vertical_space import add_vertical_space
-from streamlit_extras.grid import grid
 
 
 st.set_page_config(page_title="Speakleash Dashboard", layout="wide", page_icon="http://speakleash.org/wp-content/uploads/2022/12/cropped-sl-favico-black-32x32.png")
@@ -20,14 +21,20 @@ print(f"{datetime.now()} : // NEW SESSION / RESTART // --- START ---")
 
 
 @st.cache_data()
-def prepare_data(date_string):
-    # Dummy datetime input string to reset cache daily. Different string triggers cache refresh
+def Prepare_Data(date_string):
+    """
+    Prepare information about datasets from manifests.
+    """
+    # Dummy datetime input string to reset cache daily. Different string triggers cache refresh.
 
-    print(f"{datetime.now()} : // DEBUG // Func: prepare_data()")
+    start_timer = time.perf_counter()
+    print(f"{datetime.now()} : // DEBUG // Func: Prepare_Data()")
 
     base_dir = os.path.join(os.path.dirname(__file__))
     replicate_to = os.path.join(base_dir, "datasets")
     sl = Speakleash(replicate_to)
+
+    print(f"{datetime.now()} : // DEBUG // Func: Init Speakleash = Before LOOP = {(time.perf_counter() - start_timer):.3f}")
 
     datasets_dates = pd.read_csv("./static/datasets_dates.csv", sep=",", header=0)
     datasets_dates["Dates"] = pd.to_datetime(datasets_dates["Dates"], utc = True, format = 'ISO8601')
@@ -36,8 +43,8 @@ def prepare_data(date_string):
     tags_sum_docs = {}
 
     # Gather info about every dataset
-    for id, d in enumerate(sl.datasets):
-        
+    for idx, d in enumerate(sl.datasets):
+
         # print(f"Name: {d.name} | Docs: {d.documents}")
         # print(sl.get(d.name).manifest)
 
@@ -58,7 +65,7 @@ def prepare_data(date_string):
                 d_symbols = symbols
         except:
             d_symbols = 0
-        
+
         try:
             sentences = d.sentences
             if isinstance(sentences, list):
@@ -107,15 +114,15 @@ def prepare_data(date_string):
             avg_sents_in_docs = d.sentences / d.documents
         except:
             avg_sents_in_docs = 0
-        try: 
+        try:
             avg_text_dynamics = d.verbs / d.words
         except:
             avg_text_dynamics = 0
-        try: 
+        try:
             avg_nouns_to_verbs = d.nouns / d.verbs
         except:
             avg_nouns_to_verbs = 0
-        try: 
+        try:
             avg_stopwords_to_words = d.stopwords / d.words
         except:
             avg_stopwords_to_words = 0
@@ -130,18 +137,18 @@ def prepare_data(date_string):
 
             for key, value in dici_sort.items():
                 calc_temp = round(value / d.documents * 100, 2)
-                if (calc_temp > 1):
+                if calc_temp > 1 :
                     d_tags[key] = calc_temp
                 else:
                     break
-            
+
             tags_sum_docs = {k: tags_sum_docs.get(k, 0) + dici_sort.get(k, 0) for k in set(tags_sum_docs) | set(dici_sort)}
 
         except:
             try:
-                d_tags = {"Inne": d.documents / d.documents * 100}
+                d_tags = {"Rożne": d.documents / d.documents * 100}
             except:
-                d_tags = {"Inne": 0.0}
+                d_tags = {"Rożne": 0.0}
 
         if d_tags:
             pass
@@ -162,31 +169,39 @@ def prepare_data(date_string):
                         d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
                         proper_date = False
                     except:
-                        d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01') + timedelta(days=1, hours=12))
+                        d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
                         proper_date = False
-                        print(f"- Got empty string as date -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
-                    # d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
-                    # proper_date = False
+                        # print(f"- Got empty string as date -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
                 else:
                     d_create_date = pd.to_datetime(d_create_date) # "%Y-%m-%d %H:%M:%s"
                     proper_date = True
             except:
                 d_create_date = datasets_dates[datasets_dates['Name'] == d.name]['Dates'].values[0]
                 proper_date = False
-                print(f"- Something is wrong with date -> Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
+                # print(f"- Something is wrong with date -> Can't find date in manifest -> Dataset: {d.name} | Found date in file: {d_create_date}")
         except:
-            d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01') + timedelta(days=1, hours=12))
+            d_create_date = pd.to_datetime(datetime.fromisoformat('2022-01-01'))
             proper_date = False
-            print(f"- Can't find nothing -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+            # print(f"- Can't find nothing -> Can't find date in manifest -> Dataset: {d.name} | Create new date: {d_create_date}")
+
+        try:
+            d_create_date = pd.to_datetime(d_create_date)
+        except Exception as e:
+            print("// ERROR: ", e)
 
         try:
             d_update_date = d_manifesto.get('updated_date', "")
             if d_update_date == "":
-                    d_update_date = d_create_date
+                d_update_date = d_create_date
             else:
                 d_update_date = pd.to_datetime(d_update_date)
         except:
             d_update_date = d_create_date
+
+        try:
+            d_update_date = pd.to_datetime(d_update_date)
+        except Exception as e:
+            print("// ERROR: ", e)
 
         # print(f"Before CONCAT => Data: {d.name} | Date: {d_create_date}\n---")
         # print(f"Before CONCAT => Data: {d.name} | Date: {d_update_date}\n---")
@@ -220,7 +235,7 @@ def prepare_data(date_string):
                                                     "Avg_Nouns_to_Verbs" : avg_nouns_to_verbs,
                                                     "Avg_Stopwords_to_Words": avg_stopwords_to_words,
                                                     "Manifest": [d_manifesto]
-                                                }, index=[id])])
+                                                }, index=[idx])])
 
         # loop end
 
@@ -236,26 +251,40 @@ def prepare_data(date_string):
     total_punctuations = dataframe_for_all_datasets["Punctuations"].sum()
     total_symbols = dataframe_for_all_datasets["Symbols"].sum()
     total_stopwords = dataframe_for_all_datasets["Stopwords"].sum()
-    
+
     dataframe_show = dataframe_for_all_datasets.copy(deep=True)
     dataframe_show["SELECTED"] = False
     dataframe_show["Tags_p"] = dataframe_show["Tags"].apply(lambda d: [f"{key} - {value}%" for key, value in d.items()])
     dataframe_show["Tags"] = dataframe_show["Tags"].apply(lambda d: list(d.keys()))
     dataframe_show["Quality_HIGH"] = dataframe_show["Quality"].apply(lambda d: d.get('HIGH', 0))
-    dataframe_show["Quality"] = dataframe_show["Quality"].apply(lambda d: [v * 100 for v in d.values()])
+    dataframe_show["Quality"] = dataframe_show["Quality"].apply(lambda d: [int(v * 100) for v in d.values()])
 
     tags_sum_table = pd.DataFrame({"Tags": tags_sum_docs.keys(), "Docs_sum": tags_sum_docs.values()}).sort_values(by="Docs_sum", ascending=False)
+
+    end_timer = time.perf_counter()
+    print(f"{datetime.now()} : // DEBUG // Func: Prepare_Data() = {(end_timer - start_timer):.3f} sec")
 
     return sl, dataframe_for_all_datasets, dataframe_show, tags_sum_table, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords
 
 
 ### Init
 
-sl, dataframe_for_all_datasets, dataframe_show, tags_sum_table, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords = prepare_data(datetime.now().strftime("%m-%d-%Y"))
+sl, dataframe_for_all_datasets, dataframe_show, tags_sum_table, total_size_mb, total_documents, total_characters, total_sentences, total_words, total_verbs, total_nouns, total_punctuations, total_symbols, total_stopwords = Prepare_Data(datetime.now().strftime("%m-%d-%Y"))
 
 # Debug table
 # st.dataframe(dataframe_show)
 
+st.markdown("""
+        <style>
+               .block-container {
+                    padding-top: 0%;
+                    padding-bottom: 0%;
+                    padding-left: 3%;
+                    padding-right: 3%;
+                    scrollbar-width: thin;
+                }
+        </style>
+        """, unsafe_allow_html=True)
 
 ### Prepare layout
 st.subheader("")
@@ -272,94 +301,135 @@ st.markdown("""
         text-align: center;
     }
     .table-responsive {
+        text-align: center;
         font-size: 0.9em;
-        margin-left: auto;
-        margin-right: auto;
-        max-width: 100%;
+        margin-left: 0%;
+        margin-right: 0%;
         overflow-x: auto;
+        -ms-overflow-style: 3px;  /* Internet Explorer 10+ */
+        scrollbar-width: thin;  /* Firefox */
     }
-    a:hover {
-        color:#A85E00;
-    }   /* Mouse over link */
+    .table-responsive::-webkit-scrollbar { 
+        /*display: none;*/  /* Safari and Chrome */
+        width: 6px;
+    }
+
+    #table_id {
+      display: block;
+    }
+
+    #table_id th {
+      display: inline-block;
+    }
+
+    #table_id td {
+        padding-left: 0.7rem; 
+        padding-right: 0.7rem;
+        display: inline-block;
+    }
+    #table_id td:hover {
+        color:#FDA428;
+    }
+
+    a:link {color:#A85E00;}      /* unvisited link */
+    a:hover {color:#FDA428;}   /* Mouse over link */
+    a:visited {color:#A85E00;}  /* visited link */
+    a:active {color:#A85E00;}  /* selected link */
+
+    .image-container {
+      position: relative;
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    .image-container img {
+      vertical-align: middle;
+    }
+
+    .image-container::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 2px;
+      background-color: #FDA428; /* Change this to your desired color */
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .image-container:hover {
+      transform: translateY(-3px); /* Change the value to adjust the upward movement */
+    }
+
+    .image-container:hover::after {
+      transform: scaleX(1);
+    }
+
+/* ---------------------------------------------------------------- */
 </style>
 """, unsafe_allow_html=True)
 
-
+# --- Colors info ---
 # Primary Color: #FDA428
 # Secondary Color: #A85E00
-
+# Grey Color: #7B7B7B
+# Background Color: #1C1C1C
+# {'LOW': '#7B7B7B', 'MEDIUM': '#A85E00', 'HIGH': '#FDA428'}
+# ----------------------------------------------------------
 
 ### Row: 1 --> Title + links to SpeakLeash.org website / GitHub / X (Twitter)
-row0_1, row0_2 = st.columns([0.6,0.4])
+st.write(
+"""
+<html>
+<div style="text-align: right; font-size: 1.3em; font-family: 'Inter var', sans-serif; color:#A85E00;">
+<a href="https://speakleash.org" target='_blank' rel='noopener noreferrer'>speakleash.org</a>
+<a href="https://speakleash.streamlit.app/" target='_blank' rel='noopener noreferrer'><img class='image-container' src="https://streamlit.io/images/brand/streamlit-mark-light.svg" alt="Streamlit App" height="25"></a>&nbsp;
+<a href="https://github.com/speakleash" target='_blank' rel='noopener noreferrer'><img class='image-container' src="./app/static/github-mark-white.png" alt="GitHub" width="30" height="30"></a>&nbsp;
+<a href="https://twitter.com/Speak_Leash" target='_blank' rel='noopener noreferrer'><img class='image-container' src="./app/static/X-logo-white.png" alt="X (Twitter)" width="28" height="28"></a>
+<br>
+<!-- <p style="font-size: 0.8em;">Streamlit standalone</p> -->
+</div>
+</html>
+""",unsafe_allow_html=True)
 
-row0_1.markdown("<html><a href='https://speakleash.streamlit.app/' target='_blank' rel='noopener noreferrer'><h1 style='color: #FDA428;'>Speakleash a.k.a. Spichlerz Datasets Dashboard <sub>STREAMLIT APP</sub></h1></a></html>", unsafe_allow_html=True)
+row0_1, row0_2 = st.columns([0.8,0.2])
 
-with row0_2:
-    add_vertical_space()
-    st.write(
-    """
-    <html>
-    <div style="text-align: right; font-size: 1.5em;">
-    <a href="https://speakleash.org" target='_blank' rel='noopener noreferrer'>speakleash.org</a>
-    | 
-    <a href="https://github.com/speakleash" target='_blank' rel='noopener noreferrer'>GitHub</a>
-    |
-    <a href="https://twitter.com/Speak_Leash" target='_blank' rel='noopener noreferrer'>X (twitter)</a>
-    <br>
-    <!-- <p style="font-size: 0.8em;">Streamlit standalone</p> -->
-    </div>
-    </html>
-    """,unsafe_allow_html=True)
-
+# Website Title with: SpeakLeash a.k.a. Spichlerz Datasets Dashboard
+row0_1.markdown("""<html><a href='https://speakleash.streamlit.app/' target='_blank' rel='noopener noreferrer'><h1 style='color: #FDA428; margin-top: -1rem; font-size: 3.1em;'>SpeakLeash a.k.a. Spichlerz <br>Datasets Dashboard <sub><img src="https://streamlit.io/images/brand/streamlit-mark-color.svg" height="15"></sub></h1></a></html>""", unsafe_allow_html=True) # <img src="https://streamlit.io/images/brand/streamlit-logo-secondary-colormark-lighttext.svg" height="25">
 
 ### Row: 2 --> Project Info + data acquisition timeline + Project data progress Indicator
 row1_1a, row1_1b = st.columns([0.5, 0.5])
 
 # Project Info & timeline Bar Chart
 with row1_1a:
-    add_vertical_space()
-    add_vertical_space()
+    # Info about Project
+    st.markdown("""<div style="text-align: center; font-size: 1em; font-family: 'Source Sans Pro', sans-serif; margin-left: 0%; margin-right: 5%;">
+                    <i>"SpeakLeash is an open collaboration project to build datasets for Language Modeling with a capacity of at least 1TB containing diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data."</i></div>""", unsafe_allow_html=True)
 
-    caption_grid = grid([1], vertical_align="center")
-    caption_grid.markdown("""_"An open collaboration project to build a data set for Language Modeling with a capacity of at least 1TB comprised of diverse texts in Polish. Our aim is to enable machine learning research and to train a Generative Pre-trained Transformer Model from collected data."_""")
+    add_vertical_space()
 
     @st.cache_data()
     def BarChart_Timeline(dataframe_show = dataframe_show):
+        """
+        Create Timeline with collected datasets per each month.
+        """
+
+        start_timer = time.perf_counter()
         print(f"{datetime.now()} : // DEBUG // Func: BarChart_Timeline()")
 
         dataframe_with_dates = dataframe_show[dataframe_show['Proper_Date'] == True]
-        weeks_dates = pd.date_range(start = dataframe_with_dates["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=7), freq='W-MON')
-        result_table = pd.DataFrame({"Creation_Date_Placeholder": weeks_dates})
-        months_dates = pd.date_range(start = dataframe_with_dates["Creation_Date"].dt.floor("D").min(), end = datetime.now() + timedelta(days=32), freq='M')
-        result_table_months = pd.DataFrame({"Creation_Date_Placeholder": months_dates})
-
-        # Calculation for WEEKs aggregation
-        def filter_and_sum_weeks(row):
-            mask = (dataframe_with_dates["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = 7)) & \
-                   (dataframe_with_dates["Creation_Date"] <= row["Creation_Date_Placeholder"])
-            filtered_data = dataframe_with_dates[mask]
-            datasets = filtered_data["Dataset"].tolist()
-            total_documents = filtered_data["Documents"].sum()  # Sum of documents
-            total_datasets = len(filtered_data["Documents"])    # Sum of datasets
-            return pd.Series({"Datasets": datasets, "Total_Documents": total_documents, "Total_Datasets": total_datasets})
-
-        result_table[["Datasets", "Total_Documents", "Total_Datasets"]] = result_table.apply(filter_and_sum_weeks, axis=1)
+        dataframe_with_dates = dataframe_with_dates[["Dataset", "Size_MB", "Category", "Documents", "Creation_Date"]]
 
         # Calculation for MONTHs aggregation
-        def filter_and_sum_months(row):
-            mask = (dataframe_with_dates["Creation_Date"] > row["Creation_Date_Placeholder"] - pd.DateOffset(days = row["Creation_Date_Placeholder"].day)) & \
-                   (dataframe_with_dates["Creation_Date"] <= row["Creation_Date_Placeholder"])
-            filtered_data = dataframe_with_dates[mask]
-            datasets = filtered_data["Dataset"].tolist()
-            total_documents = filtered_data["Documents"].sum()  # Sum of documents
-            total_datasets = len(filtered_data["Documents"])    # Sum of datasets
-            return pd.Series({"Datasets": datasets, "Total_Documents": total_documents, "Total_Datasets": total_datasets})
+        dataframe_grouped = dataframe_with_dates.groupby(pd.Grouper(key='Creation_Date', freq='M')).agg({'Dataset': ['count', list], 'Documents': 'sum'})
+        dataframe_grouped['Creation_Date_Placeholder'] = dataframe_grouped.index.strftime('%Y-%m-01')
+        dataframe_grouped.reset_index(drop=True, inplace=True)
+        dataframe_grouped.columns = ['Total_Datasets', 'Datasets', 'Total_Documents', 'Creation_Date_Placeholder']
+        dataframe_grouped = dataframe_grouped[['Creation_Date_Placeholder', 'Datasets', 'Total_Documents', 'Total_Datasets']]
 
-        result_table_months[["Datasets", "Total_Documents", "Total_Datasets"]] = result_table_months.apply(filter_and_sum_months, axis=1)
-        result_table_months["Creation_Date_Placeholder"] = result_table_months["Creation_Date_Placeholder"].apply(lambda x: x.replace(day=1))
-
-        # If Chart has to be in MONTHS
-        result_table = result_table_months
+        # Get last 8 months for best visuals on website
+        result_table = dataframe_grouped.tail(8)
 
         # Don't touch this
         result_table = result_table.explode("Datasets")
@@ -369,30 +439,28 @@ with row1_1a:
 
         # Plotly Bar Chart
         fig_test = px.bar(result_table, x="Creation_Date_Placeholder", y='Documents', color="Documents", hover_name="Datasets", hover_data=["Total_Documents", "Documents", "Creation_Date"],
-                     labels={"Creation_Date_Placeholder": 'Months of Data Collection', 'Documents': 'Total Documents'}, height=300,
+                     labels={"Creation_Date_Placeholder": 'Months of data collection', 'Documents': 'Documents'}, height=300,
+                     title="New datasets every month",
                      color_discrete_sequence=px.colors.sequential.Plasma)
 
         # ----------------------------------- #
         # Adding a summary value above the bars:
-        #
-        # 1) Total Documents in specific time:
-        # for idx, row in result_table.iterrows():
-        #     fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=(row["Total_Documents"]+3e5), text=f'{(row["Total_Documents"] / 10e5):.1f}M',  showarrow=False)
-        #
         # 2) Total Datasets in specific time:
-        for idx, row in result_table.iterrows():
-            fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=(row["Total_Documents"]+6e5), text=f'{(row["Total_Datasets"])}',  showarrow=False)
+        max_y = result_table["Total_Documents"].max()
+
+        for idx, row in result_table[["Creation_Date_Placeholder", "Total_Documents", "Total_Datasets"]].drop_duplicates().iterrows():
+            y_coordinate = row["Total_Documents"] + round(max_y * 0.05, 0)
+            fig_test.add_annotation(x=row["Creation_Date_Placeholder"], y=y_coordinate, text=f'{(row["Total_Datasets"])}',  showarrow=False)
         # ----------------------------------- #
 
-
         # Last changes to make chart nice and clean
-
-        # labels = pd.unique([datetime.strftime(pd.to_datetime(x), '%b %Y') for x in result_table['Creation_Date'] ])
-        # fig_test.update_xaxes(tickvals = list(range(len(labels))), ticktext = labels)
-        fig_test.update_layout(margin=dict(t=10, b=10))
+        fig_test.update_layout(margin={"t": 50, "b": 10, "r": 1, "l": 5}, title={'x': 0.05, 'y': 0.89})
 
         # Show chart on Streamlit App
         st.plotly_chart(fig_test, theme="streamlit", use_container_width=True)
+
+        end_timer = time.perf_counter()
+        print(f"{datetime.now()} : // DEBUG // Func: BarChart_Timeline() = {(end_timer - start_timer):.3f} sec")
 
     BarChart_Timeline(dataframe_show)
 
@@ -402,12 +470,17 @@ with row1_1b:
 
     @st.cache_data()
     def Gauge_Progress(total_size_mb = total_size_mb):
+        """
+        Create Gauge indicator with GBs of collected documents.
+        """
+
+        start_timer = time.perf_counter()
         print(f"{datetime.now()} : // DEBUG // Func: Gauge_Progress()")
         fig1_1 = go.Figure(go.Indicator(
                 value = total_size_mb/1024,
                 number = {'valueformat':'.2f'}, # 'font': {'size': 40} 'suffix': " GB"
                 mode = "gauge+number",
-                title = {'text': f"<b>Project data progress</b><br><span style='color: gray; font-size:1em'>{round(total_size_mb/1024,2)}GB of 1TB target</span>", 'font': {"size": 16}},
+                title = {'text': f"<b>Project data progress</b><br><span style='color: gray; font-size:1em'>{round(total_size_mb/1024,2)}GB of 1TB target</span>", 'font': {"size": 18}},
                 gauge = {'axis': {'range': [None, 1200]},
                         'bar': {'color': "#00488B"},
                         'steps' : [
@@ -417,11 +490,12 @@ with row1_1b:
                              {'range': [750, 1000], 'color': "#9EC000"},
                              {'range': [1000, 1500], 'color': "#279D00"}],
                         'threshold' : {'line': {'color': "red", 'width': 4}, 'thickness': 0.9, 'value': 1024}}))
+        fig1_1.update_layout(margin={"l": 20, "r": 35, "b": 10, "t": 80}, height=400)
 
-        fig1_1.update_layout(margin=dict(l=20, r=50, b=10))
-
-        # fig1_1.update_layout(height = 400)
         st.plotly_chart(fig1_1, theme="streamlit", use_container_width=True)
+
+        end_timer = time.perf_counter()
+        print(f"{datetime.now()} : // DEBUG // Func: Gauge_Progress() = {(end_timer - start_timer):.3f} sec")
 
     Gauge_Progress(total_size_mb)
 
@@ -430,14 +504,20 @@ with row1_1b:
 row1_2a = st.columns(1)[0]
 
 with row1_2a:
-    st.write('<div style="text-align: center"><h5>So far we managed to collect:</h5></div>', unsafe_allow_html=True)
-    
+    st.write('<div style="text-align: center;"><h5 style="">So far we managed to collect:</h5></div>', unsafe_allow_html=True)
+
     @st.cache_data()
-    def Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
+    def Table_Collected(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences,
                        total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
                        total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords):
-        print(f"{datetime.now()} : // DEBUG // Func: Table_Progress()")
-        # Same code as before to create the table
+        """
+        Create Table (HTML) with selected summary statistics like e.g. total documents...
+        """
+
+        start_timer = time.perf_counter()
+        print(f"{datetime.now()} : // DEBUG // Func: Table_Collected()")
+
+        # Create dataframe for table with statistics
         table_data = {
             'Total documents': ["{:,}".format(total_documents).replace(",", " ")],
             'Total characters': ["{:,}".format(total_characters).replace(",", " ")],
@@ -450,9 +530,26 @@ with row1_2a:
             'Total stopwords': ["{:,}".format(total_stopwords).replace(",", " ")]
         }
         df2 = pd.DataFrame(table_data)
-        st.markdown('<div style="display: flex; justify-content: center;">' + df2.to_html(col_space="auto",justify='center',classes='table-responsive', index=False).replace('<table', '<table style="white-space: nowrap; text-align: center; overflow-x: auto;"') + '</div>',unsafe_allow_html=True)
 
-    Table_Progress(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences, 
+        # Prepare specific table format
+        def generate_html_table(dataframe):
+            html_table = "<table id='table_id' style='margin-top: -1rem; white-space: nowrap; text-align: center; border-radius: 7px;' class='table-responsive'>"
+            html_table += "<tr>"
+            for column in dataframe.columns:
+                value = dataframe[column].values[0]
+                html_table += f"<td><b>{column}</b><hr style='margin: 0.25rem;'>{value}</td>"
+            html_table += "</tr>"
+            html_table += "</table>"
+            return html_table
+
+        # Generate HTML table in streamlit app
+        st.markdown('<div style="display: flex; justify-content: center;">' + generate_html_table(df2) + '</div>',unsafe_allow_html=True)
+
+        end_timer = time.perf_counter()
+        print(f"{datetime.now()} : // DEBUG // Func: Table_Collected() = {(end_timer - start_timer):.3f} sec")
+
+    add_vertical_space()
+    Table_Collected(total_documents = total_documents, total_characters = total_characters, total_sentences = total_sentences,
                        total_words = total_words, total_verbs = total_verbs, total_nouns = total_nouns,
                        total_punctuations = total_punctuations, total_symbols = total_symbols, total_stopwords = total_stopwords)
 
@@ -464,60 +561,123 @@ add_vertical_space()
 row_expander= st.columns(1)[0]
 
 with row_expander:
-    
+
     with st.expander("More graphs with datasets distribiutions"):
-        # st.markdown('<div class="center-text"><h2>Summary</h2></div>', unsafe_allow_html=True)
-        
+
         row_exp_col1, row_exp_col2 = st.columns(2)
+
         with row_exp_col1:
+
+            # Chart with: Total Size of datasets by Category
             @st.cache_data()
             def Expander_Chart_1(dataframe_show = dataframe_show):
-                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_1()")
+                """
+                Create Bar plot with Total Size of datasets by Category.
+                """
+                start_timer = time.perf_counter()
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_1() = Total Size of datasets by Category")
                 grouped_data = dataframe_show.groupby('Category').sum(numeric_only=True).reset_index()
                 grouped_data["Size_GB"] = grouped_data["Size_MB"] / 1000
-                fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.2f', title="Total Size of datasets by Category")
-                fig1a_1.update_layout(xaxis_title='Category', yaxis_title='Total Size [GB]')
-                fig1a_1.update_traces(textangle=0, textposition="outside", cliponaxis=False)
-                fig1a_1.update_layout(margin=dict(r=10, t=25, b=10),title_x=0.1)
+                fig1a_1 = px.bar(grouped_data, x='Category', y='Size_GB',text_auto='.1f', title="Total Size of datasets by Category")
+                fig1a_1.update_traces(textangle=0, textposition="outside", cliponaxis=False) # marker_color='#FDA428'
+                fig1a_1.update_layout(margin={"r": 10, "t": 60, "b": 10},
+                                      xaxis_title='Category', yaxis_title='Total Size [GB]',
+                                      title_x=0.0, title_y=0.93)
                 st.plotly_chart(fig1a_1, theme="streamlit", use_container_width=True)
+                end_timer = time.perf_counter()
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_1() = {(end_timer - start_timer):.3f} sec")
             Expander_Chart_1(dataframe_show)
 
+
         with row_exp_col2:
+
+            # Chart with: Avg words per document by Category
             @st.cache_data()
             def Expander_Chart_2(dataframe_show = dataframe_show):
-                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_2()")
-                fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Average words per document by Category")
-                fig1a_2.update_layout(margin=dict(l=20, t=25, b=20),title_x=0.1)
+                """
+                Create Box plot with Average words in documents by Category.
+                """
+                start_timer = time.perf_counter()
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_2() = Avg words in documents by Category")
+                fig1a_2 = px.box(dataframe_show, x="Category", y="Avg_Doc_Length", title="Avg words in documents by Category")
+                # fig1a_2.update_traces(marker_color='#FDA428')     # If we wanna chart in different color
+                fig1a_2.update_layout(margin={"l": 20, "t": 50, "b": 20},title_x=0.0, title_y=0.93)
                 st.plotly_chart(fig1a_2, theme="streamlit", use_container_width=True)
+                end_timer = time.perf_counter()
+                print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_2() = {(end_timer - start_timer):.3f} sec")
             Expander_Chart_2(dataframe_show)
 
-#         add_vertical_space()
         st.divider()
 
+        top_chart_int = st.slider(label="Select number of top Tags", min_value=2, max_value=30, value=10, step=1)
+
+        # Chart with: Sum of documents by Tags
         @st.cache_data()
-        def Expander_Chart_3(tags_sum_table = tags_sum_table):
-            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_3()")
-            fig1a_3 = px.bar(tags_sum_table[0:20], x='Tags', y='Docs_sum',text_auto='.3s', 
-                             title=f"Sum of documents in datasets by Tags (Categories) - TOP 20 Largest Tags [+ {tags_sum_table.shape[0] - 20} more Tags]")
+        def Expander_Chart_3(tags_sum_table = tags_sum_table, top_chart_int = top_chart_int):
+            """
+            Create Bar plot with Sum of documents by Tags.
+            """
+            start_timer = time.perf_counter()
+            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_3() = Sum of documents by Tags")
+            fig1a_3 = px.bar(tags_sum_table[0:top_chart_int], x='Tags', y='Docs_sum',text_auto='.2s',
+                             title=f"Sum of documents by Tags - TOP {top_chart_int} [+ {tags_sum_table.shape[0] - top_chart_int} more Tags]")
             fig1a_3.update_layout(xaxis_title='Tags', yaxis_title='Documents (sum)')
             fig1a_3.update_traces(textangle=0, textposition="outside", cliponaxis=False)
-            fig1a_3.update_layout(margin=dict(r=10, t=25, b=10),title_x=0.2)
+            fig1a_3.update_layout(margin={"r": 10, "t": 60, "b": 10},title_x=0.0, title_y=0.93)
             st.plotly_chart(fig1a_3, theme="streamlit", use_container_width=True)
-        Expander_Chart_3(tags_sum_table)
+            end_timer = time.perf_counter()
+            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_3() = {(end_timer - start_timer):.3f} sec")
+        Expander_Chart_3(tags_sum_table, top_chart_int)
+
+        st.divider()
+
+        # Chart with: Average Quality in Categories
+        @st.cache_data()
+        def Expander_Chart_4(dataframe_show = dataframe_show):
+            """
+            Create Bar plot with Average Quality in Categories.
+            """
+            start_timer = time.perf_counter()
+            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_4() = Average Quality in Categories")
+            df_chart = pd.DataFrame()
+            df_chart['Category'] = dataframe_show['Category']
+            df_chart[['HIGH', 'MEDIUM', 'LOW']] = pd.DataFrame(dataframe_show['Quality'].tolist()) / 100.0
+            df_chart_combine = df_chart.groupby('Category').mean()
+            df_chart_solo = df_chart[['HIGH', 'MEDIUM', 'LOW']].mean().to_frame('SpeakLeash (All Data)').T
+            df_chart_combine = pd.concat([df_chart_solo, df_chart_combine], axis=0)
+            df_chart_combine = df_chart_combine.round(4)
+            df_long = df_chart_combine.reset_index().melt(id_vars='index', var_name='Category', value_name='Value')
+            df_long.columns = ['Category', 'Quality', 'Value']
+            df_swapped = pd.concat([df_long[df_long['Quality'] == 'LOW'],
+                                    df_long[df_long['Quality'] == 'MEDIUM'],
+                                    df_long[df_long['Quality'] == 'HIGH']])
+            color_map = {'LOW': '#7B7B7B', 'MEDIUM': '#A85E00', 'HIGH': '#FDA428'}
+
+            fig1a_0 = px.bar(df_swapped, x='Category', y='Value', color='Quality',
+                             text_auto='.0%', title="Average Quality in Categories",
+                             color_discrete_map=color_map)
+            fig1a_0.update_traces(textangle=0, textposition="inside", cliponaxis=False)
+            fig1a_0.update_layout(xaxis_title='Category', yaxis_title='Documents Quality',
+                                    margin={"r": 10, "t": 105, "b": 10},title_x=0.0, title_y=0.93,
+                                    legend={"orientation": 'h', "yanchor": 'top', "y": 1.20, "x": -0.03}, legend_traceorder="reversed")
+            st.plotly_chart(fig1a_0, theme="streamlit", use_container_width=True)
+            end_timer = time.perf_counter()
+            print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_4() = {(end_timer - start_timer):.3f} sec")
+
+        Expander_Chart_4(dataframe_show)
 
 add_vertical_space()
-
 st.subheader("", divider="orange")
 
 
 ### Row: 5 --> Tabs with search, compare and RAW info about datasets
 st.markdown("<html><h2 style='color: #FDA428;'><b>Search for data you need  <span style='font-size: 0.7em;'>🔍</span></b></h2></html>", unsafe_allow_html=True)
 
-tab_search, tab_compare, tab_RAW = st.tabs(["Search Datasets...", "Comparing Datasets...", "RAW Table..."])
+tab_search, tab_compare, tab_RAW = st.tabs(["Search Datasets...", "Selected...", "RAW Table..."])
 
 ### Row: 5.1.1 --> Search Tab
 with tab_search:
-    
+
     row_search_1, row_search_2, row_search_3, row_search_4, row_search_5 = st.columns(5)
 
     with row_search_1:
@@ -562,11 +722,11 @@ with tab_search:
     # print(search_add_column)
 
     dataframe_show = st.data_editor(dataframe_show.loc[
-                                                        (dataframe_show["Dataset"].isin(search_by_name)) 
-                                                        & (dataframe_show["Category"].isin(search_by_category)) 
+                                                        (dataframe_show["Dataset"].isin(search_by_name))
+                                                        & (dataframe_show["Category"].isin(search_by_category))
                                                         & (dataframe_show["Tags"].apply(lambda slowa: any(slowo in slowa for slowo in search_by_tags)))
                                                         & (dataframe_show["Quality_HIGH"] > (search_by_quality[0] / 100))
-                                                        & (dataframe_show["Quality_HIGH"] < (search_by_quality[1] / 100))], 
+                                                        & (dataframe_show["Quality_HIGH"] < (search_by_quality[1] / 100))],
                     column_config={
                         "Dataset": st.column_config.TextColumn("Dataset", help="Datasets name"),
                         "Size_MB": st.column_config.NumberColumn("Size [MB]",format="%d", help="Dataset size in MB"),  # format="%d"
@@ -585,7 +745,7 @@ with tab_search:
                     column_order = col_order, # "Quality", "Creation_Date",
                     disabled = dataframe_show.columns.drop("SELECTED"),
                     hide_index=True,
-                    use_container_width=False)
+                    use_container_width=True)
 
     add_vertical_space()
     add_vertical_space()
@@ -594,7 +754,7 @@ with tab_search:
     ### Row: 5.1.2 --> Get random documents
     st.subheader("* Random document (max 200 characters):", divider="gray")
     search_get_random_docs = st.multiselect(label="Select Dataset to get random document:", placeholder="Select Dataset to view a random document...", options=dataframe_show["Dataset"])
-    
+
     if search_get_random_docs:
         for dataset_random_doc in search_get_random_docs:
             ds = sl.get(dataset_random_doc).samples
@@ -603,7 +763,7 @@ with tab_search:
                 meta = doc['meta']
                 if idx == 0:
                     break
-    
+
             st.write("<html><u><b>Random document from :</b></u> &nbsp</html>", dataset_random_doc, unsafe_allow_html = True)
             st.write(ftfy.fix_encoding(txt[:200] + " [...]"))
             st.write("<html><u><b>Metadata for this document :</b></u> &nbsp</html>", unsafe_allow_html = True)
@@ -621,8 +781,8 @@ with tab_compare:
     with col_table:
         add_vertical_space()
         add_vertical_space()
-        
-        st.data_editor(dataframe_show.loc[dataframe_show["SELECTED"] == True], 
+
+        st.data_editor(dataframe_show.loc[dataframe_show["SELECTED"] == True],
                     column_config={
                         "Dataset": st.column_config.TextColumn("Dataset", help="Datasets name"),
                         "Size_MB": st.column_config.NumberColumn("Size [MB]", format="%d", help="Dataset size in MB"),  # format="%d"
@@ -639,18 +799,19 @@ with tab_compare:
                         "SELECTED": st.column_config.CheckboxColumn("Compare", help="Select Datasets to compare in second tab")
                     },
                     column_order = col_order, # "Quality", "Creation_Date",
-                    disabled = dataframe_show.columns, 
-                    hide_index=True)
-    
+                    disabled = dataframe_show.columns,
+                    hide_index=True,
+                    use_container_width=True)
+
     add_vertical_space()
-    
+
 
     with st.expander("Some comparison charts..."):
     # with col_manifest:
         if dataframe_show.loc[dataframe_show["SELECTED"] == True].shape[0] > 0:
             theta = ["Avg_Doc_Length", "Avg_Sentence_Length", "Avg_Sentences_in_Doc", "Avg_Text_Dynamics", "Avg_Nouns_to_Verbs", "Avg_Stopwords_to_Words"]
             comp_df = pd.DataFrame()
-            
+
             for idx, row in dataframe_show.loc[dataframe_show["SELECTED"] == True].iterrows():
                 r_r = row[theta] / (dataframe_show[theta].sum() / len(sl.datasets))
                 r_data = pd.DataFrame({"r": r_r[theta].T, "theta": theta}).reset_index(drop=True)
@@ -685,7 +846,7 @@ with tab_compare:
     ### Row: 5.2.3 --> Get Random Documents
     st.subheader("* Random document from selected Datasets (max 200 chars):", divider="gray")
     search_get_random_docs_comp = st.multiselect(label="Select Dataset to get random documents:", placeholder="Select Dataset to see a random documents...", options=dataframe_show.loc[dataframe_show["SELECTED"] == True, "Dataset"])
-    
+
     if search_get_random_docs_comp:
         for dataset_random_doc in search_get_random_docs_comp:
             ds = sl.get(dataset_random_doc).samples
@@ -694,7 +855,7 @@ with tab_compare:
                 meta = doc['meta']
                 if idx == 0:
                     break
-    
+
             st.write("<html><u><b>Random document from :</b></u> &nbsp</html>", dataset_random_doc, unsafe_allow_html = True)
             st.write(ftfy.fix_encoding(txt[:200] + " [...]"))
             st.write("<html><u><b>Metadata for this document :</b></u> &nbsp</html>", unsafe_allow_html = True)
@@ -702,20 +863,29 @@ with tab_compare:
             st.write("---")
 
 
-    # if num_rows < 5:
-    #     for _ in range(2 - num_rows):
-    #         add_vertical_space()
-
 
 ### Row: 5.3.1 --> RAW Table tab
 with tab_RAW:
-    st.dataframe(dataframe_for_all_datasets)
+
+    # TODO! : revisit column "Tags" - streamlit sort dictinary inside dataframe
+    st.dataframe(dataframe_for_all_datasets, column_config={'Tags': st.column_config.Column()}, use_container_width=True)
+
+    empty_quality = dataframe_for_all_datasets[dataframe_for_all_datasets["Quality"] == {}]
+    if len(empty_quality) > 0:
+        for ind, row in enumerate(empty_quality['Dataset']):
+            st.error(f"Empty Quality Index! Check index: {empty_quality.index[ind]} → Dataset: {row}", icon="🚨")
 
     false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] == False]
     if len(false_rows) > 0:
-        st.error(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column):", icon="🚨")
+        empty_dates = ""
         for ind, row in enumerate(false_rows['Dataset']):
-            st.warning(f"Index: {false_rows.index[ind]} | Dataset: {row}", icon="⚠️")
+            # st.warning(f"Index: {false_rows.index[ind]} | Dataset: {row}", icon="⚠️")
+            empty_dates = empty_dates + f" '{row}' |"
+
+        st.warning(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column): {empty_dates}", icon="⚠️")
+        # st.error(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column): {empty_dates}", icon="🚨")
+
+    ### End of RAW Table
 
 
 add_vertical_space()
@@ -730,6 +900,10 @@ file_path = "speakleash_data.json"
 
 @st.cache_data(ttl = 3600)
 def get_json_badge(file_path = file_path):
+    """
+    Create JSON with some values like: datasets count, datasets GBs.
+    - for custom badge on GitHub SpeakLeash library repositiory.
+    """
 
     time_now = datetime.now(timezone.utc)
 
@@ -740,7 +914,7 @@ def get_json_badge(file_path = file_path):
     }
 
     if os.path.exists(f"./static/{file_path}"):
-        with open(f"./static/{file_path}", "r") as json_file:
+        with open(f"./static/{file_path}", "r", encoding='Utf-8') as json_file:
             existing_data = json.load(json_file)
 
         last_update_utc = existing_data.get("updateUTCdate", "")
@@ -754,12 +928,15 @@ def get_json_badge(file_path = file_path):
 
         if time_difference.total_seconds() > 3600:
             print(f"{time_now} --> Saving JSON file --> Data: {data_to_json}")
-            with open(f"./static/{file_path}", "w") as json_file:
+            with open(f"./static/{file_path}", "w", encoding='Utf-8') as json_file:
                 json.dump(data_to_json, json_file)
     else:
         print(f"{time_now} --> Saving JSON file (1-st time) --> Data: {data_to_json}")
-        with open(f"./static/{file_path}", "w") as json_file:
+        with open(f"./static/{file_path}", "w", encoding='Utf-8') as json_file:
             json.dump(data_to_json, json_file)
 
 get_json_badge(file_path)
 st.markdown(f'<html><a href="./app/static/{file_path}" style="color: #FDA428;">.</a></html>', unsafe_allow_html=True)
+
+# Force print to nohup.out / console - if some weird buffering occured
+sys.stdout.flush()
