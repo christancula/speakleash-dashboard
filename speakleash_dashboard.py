@@ -190,7 +190,8 @@ def Prepare_Data(date_string):
             print("// ERROR: ", e)
 
         try:
-            d_update_date = d_manifesto.get('updated_date',"")
+            d_update_date = d_manifesto.get('updated_date', "")
+
             if d_update_date == "":
                 d_update_date = d_create_date
             else:
