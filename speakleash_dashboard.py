@@ -639,12 +639,35 @@ with row_expander:
             """
             start_timer = time.perf_counter()
             print(f"{datetime.now()} : // DEBUG // Func: Expander_Chart_4() = Average Quality in Categories")
-            df_chart = pd.DataFrame()
-            df_chart['Category'] = dataframe_show['Category']
-            df_chart[['HIGH', 'MEDIUM', 'LOW']] = pd.DataFrame(dataframe_show['Quality'].tolist()) / 100.0
-            df_chart_combine = df_chart.groupby('Category').mean()
-            df_chart_solo = df_chart[['HIGH', 'MEDIUM', 'LOW']].mean().to_frame('SpeakLeash (All Data)').T
-            df_chart_combine = pd.concat([df_chart_solo, df_chart_combine], axis=0)
+            
+            ### Quality in Categories - simple average 
+            # df_chart = pd.DataFrame()
+            # df_chart['Category'] = dataframe_show['Category']
+            # df_chart[['HIGH', 'MEDIUM', 'LOW']] = pd.DataFrame(dataframe_show['Quality'].tolist()) / 100.0
+            # df_chart_combine = df_chart.groupby('Category').mean()
+            # df_chart_solo = df_chart[['HIGH', 'MEDIUM', 'LOW']].mean().to_frame('SpeakLeash (All Data)').T
+
+            ### Quality in Categories - calculate volume of documents for each quality (proper calculations)
+            df_chart_2 = pd.DataFrame()
+            df_chart_2['Category'] = dataframe_show['Category']
+            df_chart_2[['HIGH', 'MEDIUM', 'LOW']] = pd.DataFrame(dataframe_show['Quality'].tolist()) / 100.0
+            df_chart_2['Documents'] = dataframe_show['Documents']
+            df_chart_2['HIGH_docs'] = df_chart_2['HIGH'] * df_chart_2['Documents']
+            df_chart_2['MEDIUM_docs'] = df_chart_2['MEDIUM'] * df_chart_2['Documents']
+            df_chart_2['LOW_docs'] = df_chart_2['LOW'] * df_chart_2['Documents']
+
+            df_chart_combine_2_sum = df_chart_2.groupby('Category').sum()
+            df_chart_combine_2_sum['HIGH'] = round(df_chart_combine_2_sum['HIGH_docs'] / df_chart_combine_2_sum['Documents'], 4)
+            df_chart_combine_2_sum['MEDIUM'] = round(df_chart_combine_2_sum['MEDIUM_docs'] / df_chart_combine_2_sum['Documents'], 4)
+            df_chart_combine_2_sum['LOW'] = round(df_chart_combine_2_sum['LOW_docs'] / df_chart_combine_2_sum['Documents'], 4)
+
+            df_chart_solo_2_sum = df_chart_combine_2_sum[['Documents', "HIGH_docs", "MEDIUM_docs", "LOW_docs"]].sum(axis=0).to_frame('SpeakLeash (All Data)').T
+            df_chart_solo_2_sum['HIGH'] = round(df_chart_solo_2_sum['HIGH_docs'] / df_chart_solo_2_sum['Documents'], 4)
+            df_chart_solo_2_sum['MEDIUM'] = round(df_chart_solo_2_sum['MEDIUM_docs'] / df_chart_solo_2_sum['Documents'], 4)
+            df_chart_solo_2_sum['LOW'] = round(df_chart_solo_2_sum['LOW_docs'] / df_chart_solo_2_sum['Documents'], 4)
+
+            # df_chart_combine = pd.concat([df_chart_solo, df_chart_combine], axis=0)       # simple average
+            df_chart_combine = pd.concat([df_chart_solo_2_sum[['HIGH', 'MEDIUM', 'LOW']], df_chart_combine_2_sum[['HIGH', 'MEDIUM', 'LOW']]], axis=0)   # volume of documents for each quality
             df_chart_combine = df_chart_combine.round(4)
             df_long = df_chart_combine.reset_index().melt(id_vars='index', var_name='Category', value_name='Value')
             df_long.columns = ['Category', 'Quality', 'Value']
@@ -657,7 +680,7 @@ with row_expander:
                              text_auto='.0%', title="Average Quality in Categories",
                              color_discrete_map=color_map)
             fig1a_0.update_traces(textangle=0, textposition="inside", cliponaxis=False)
-            fig1a_0.update_layout(xaxis_title='Category', yaxis_title='Documents Quality',
+            fig1a_0.update_layout(xaxis_title='Category', yaxis_title='Documents [volume]',
                                     margin={"r": 10, "t": 105, "b": 10},title_x=0.0, title_y=0.93,
                                     legend={"orientation": 'h', "yanchor": 'top', "y": 1.20, "x": -0.03}, legend_traceorder="reversed")
             st.plotly_chart(fig1a_0, theme="streamlit", use_container_width=True)
