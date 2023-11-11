@@ -130,6 +130,7 @@ def Prepare_Data(date_string):
 
         d_manifesto = sl.get(d.name).manifest
         d_tags = {}
+        not_specified_tag = "Różne"
 
         try:
             dici = d_manifesto.get('category=95%')
@@ -141,22 +142,20 @@ def Prepare_Data(date_string):
                     d_tags[key] = calc_temp
                 else:
                     break
-
             tags_sum_docs = {k: tags_sum_docs.get(k, 0) + dici_sort.get(k, 0) for k in set(tags_sum_docs) | set(dici_sort)}
-
         except:
             try:
-                d_tags = {"Rożne": d.documents / d.documents * 100}
+                d_tags = {not_specified_tag: d.documents / d.documents * 100}
             except:
-                d_tags = {"Rożne": 0.0}
+                d_tags = {not_specified_tag: 0.0}
 
         if d_tags:
             pass
         else:
             try:
-                d_tags = {"Rożne": d.documents / d.documents * 100}
+                d_tags = {not_specified_tag: d.documents / d.documents * 100}
             except:
-                d_tags = {"Rożne": 0.0}
+                d_tags = {not_specified_tag: 0.0}
 
 
         try:
@@ -894,20 +893,27 @@ with tab_RAW:
     # TODO! : revisit column "Tags" - streamlit sort dictinary inside dataframe
     st.dataframe(dataframe_for_all_datasets, column_config={'Tags': st.column_config.Column()}, use_container_width=True)
 
-    empty_quality = dataframe_for_all_datasets[dataframe_for_all_datasets["Quality"] == {}]
-    if len(empty_quality) > 0:
-        for ind, row in enumerate(empty_quality['Dataset']):
-            st.error(f"Empty Quality Index! Check index: {empty_quality.index[ind]} → Dataset: {row}", icon="🚨")
+    def check_empty_values(df: pd.DataFrame, dataset_columns: list):
+        for ind, row in df.iterrows():
+            empty_columns = []
+            for value_name in dataset_columns:
+                if not row[value_name]:
+                    empty_columns.append(value_name)
+            if empty_columns:
+                combine_errors = ""
+                for x in empty_columns:
+                    combine_errors = combine_errors + ', ' + x
+                st.error(f"Empty [{combine_errors[2:]}] values! **Check index: {ind} → Dataset: {row['Dataset']}**", icon="🚨")
+
+    # check_empty_values(df = dataframe_for_all_datasets, dataset_columns = ["Size_MB", "Category", "Documents", "Quality", "License"])
+    check_empty_values(df = dataframe_for_all_datasets, dataset_columns = dataframe_for_all_datasets.columns[dataframe_for_all_datasets.columns != 'Description'])
 
     false_rows = dataframe_for_all_datasets[dataframe_for_all_datasets["Proper_Date"] == False]
     if len(false_rows) > 0:
         empty_dates = ""
         for ind, row in enumerate(false_rows['Dataset']):
-            # st.warning(f"Index: {false_rows.index[ind]} | Dataset: {row}", icon="⚠️")
             empty_dates = empty_dates + f" '{row}' |"
-
         st.warning(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column): {empty_dates}", icon="⚠️")
-        # st.error(f"WARNING! Please ensure to carefully check the manifests before proceeding (based on 'Proper_Date' column): {empty_dates}", icon="🚨")
 
     ### End of RAW Table
 
