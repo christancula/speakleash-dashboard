@@ -481,14 +481,14 @@ with row1_1b:
                 number = {'valueformat':'.2f'}, # 'font': {'size': 40} 'suffix': " GB"
                 mode = "gauge+number",
                 title = {'text': f"<b>Project data progress</b><br><span style='color: gray; font-size:1em'>{round(total_size_mb/1024,2)}GB of 1TB target</span>", 'font': {"size": 18}},
-                gauge = {'axis': {'range': [None, 1200]},
+                gauge = {'axis': {'range': [None, 2500]},
                         'bar': {'color': "#00488B"},
                         'steps' : [
                              {'range': [0, 250], 'color': '#EE4E26'},
                              {'range': [250, 500], 'color': "#FDA428"},
                              {'range': [500, 750], 'color': "#d8c700"},
                              {'range': [750, 1000], 'color': "#9EC000"},
-                             {'range': [1000, 1500], 'color': "#279D00"}],
+                             {'range': [1000, 2500], 'color': "#279D00"}],
                         'threshold' : {'line': {'color': "red", 'width': 4}, 'thickness': 0.9, 'value': 1024}}))
         fig1_1.update_layout(margin={"l": 20, "r": 35, "b": 10, "t": 80}, height=400)
 
