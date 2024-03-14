@@ -5,13 +5,15 @@ from datetime import datetime, timedelta, timezone
 import json
 import time
 
-from speakleash import Speakleash
+
+import ftfy
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import ftfy
-import streamlit as st
+from speakleash import Speakleash
 from streamlit_extras.add_vertical_space import add_vertical_space
+
 
 
 st.set_page_config(page_title="Speakleash Dashboard", layout="wide", page_icon="http://speakleash.org/wp-content/uploads/2022/12/cropped-sl-favico-black-32x32.png")
@@ -422,7 +424,7 @@ with row1_1a:
         dataframe_with_dates = dataframe_with_dates[["Dataset", "Size_MB", "Category", "Documents", "Creation_Date"]]
 
         # Calculation for MONTHs aggregation
-        dataframe_grouped = dataframe_with_dates.groupby(pd.Grouper(key='Creation_Date', freq='ME')).agg({'Dataset': ['count', list], 'Documents': 'sum'})
+        dataframe_grouped = dataframe_with_dates.groupby(pd.Grouper(key='Creation_Date', freq='M')).agg({'Dataset': ['count', list], 'Documents': 'sum'})
         dataframe_grouped['Creation_Date_Placeholder'] = dataframe_grouped.index.strftime('%Y-%m-01')
         dataframe_grouped.reset_index(drop=True, inplace=True)
         dataframe_grouped.columns = ['Total_Datasets', 'Datasets', 'Total_Documents', 'Creation_Date_Placeholder']
@@ -781,16 +783,21 @@ with tab_search:
     if search_get_random_docs:
         for dataset_random_doc in search_get_random_docs:
             ds = sl.get(dataset_random_doc).samples
-            for idx, doc in enumerate(ds):
-                txt = doc['text']
-                meta = doc['meta']
-                if idx == 0:
-                    break
 
-            st.write("<html><u><b>Random document from :</b></u> &nbsp</html>", dataset_random_doc, unsafe_allow_html = True)
-            st.write(ftfy.fix_encoding(txt[:200] + " [...]"))
-            st.write("<html><u><b>Metadata for this document :</b></u> &nbsp</html>", unsafe_allow_html = True)
-            st.json(meta, expanded=False)
+            st.write(f"<html><h5><u><b>Random document from:</u> {dataset_random_doc}</b> &nbsp</h5></html>", unsafe_allow_html = True)
+
+            if not ds:
+                st.warning("Sorry, we do not have samples for this dataset, at the moment...")
+            else:
+                for idx, doc in enumerate(ds):
+                    txt = doc['text']
+                    meta = doc['meta']
+                    if idx == 0:
+                        break
+
+                st.write(ftfy.fix_encoding(txt[:200] + " [...]"))
+                st.write("<html><h5><u><b>Metadata for this document :</b></u> &nbsp</h5></html>", unsafe_allow_html = True)
+                st.json(meta, expanded=False)
             st.write("---")
 
 
@@ -873,16 +880,21 @@ with tab_compare:
     if search_get_random_docs_comp:
         for dataset_random_doc in search_get_random_docs_comp:
             ds = sl.get(dataset_random_doc).samples
-            for idx, doc in enumerate(ds):
-                txt = doc['text']
-                meta = doc['meta']
-                if idx == 0:
-                    break
 
-            st.write("<html><u><b>Random document from :</b></u> &nbsp</html>", dataset_random_doc, unsafe_allow_html = True)
-            st.write(ftfy.fix_encoding(txt[:200] + " [...]"))
-            st.write("<html><u><b>Metadata for this document :</b></u> &nbsp</html>", unsafe_allow_html = True)
-            st.json(meta, expanded=False)
+            st.write(f"<html><h5><u><b>Random document from:</u> {dataset_random_doc}</b> &nbsp</h5></html>", unsafe_allow_html = True)
+
+            if not ds:
+                st.warning("Sorry, we do not have samples for this dataset, at the moment...")
+            else:
+                for idx, doc in enumerate(ds):
+                    txt = doc['text']
+                    meta = doc['meta']
+                    if idx == 0:
+                        break
+
+                st.write(ftfy.fix_encoding(txt[:200] + " [...]"))
+                st.write("<html><h5><u><b>Metadata for this document :</b></u> &nbsp</h5></html>", unsafe_allow_html = True)
+                st.json(meta, expanded=False)
             st.write("---")
 
 
