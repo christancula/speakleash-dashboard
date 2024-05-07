@@ -1,4 +1,4 @@
-speakleash
+pip install git+https://github.com/speakleash/speakleash.git
 matplotlib
 streamlit
 streamlit-lottie
