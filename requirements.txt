@@ -1,4 +1,4 @@
-git+https://github.com/speakleash/speakleash@main#egg=speakleash
+speakleash
 matplotlib
 streamlit
 streamlit-lottie
