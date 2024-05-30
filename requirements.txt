@@ -1,4 +1,4 @@
-speakleash
+speakleash==1.34.0
 matplotlib
 streamlit
 streamlit-lottie
