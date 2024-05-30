@@ -424,7 +424,7 @@ with row1_1a:
         dataframe_with_dates = dataframe_with_dates[["Dataset", "Size_MB", "Category", "Documents", "Creation_Date"]]
 
         # Calculation for MONTHs aggregation
-        dataframe_grouped = dataframe_with_dates.groupby(pd.Grouper(key='Creation_Date', freq='M')).agg({'Dataset': ['count', list], 'Documents': 'sum'})
+        dataframe_grouped = dataframe_with_dates.groupby(pd.Grouper(key='Creation_Date', freq='ME')).agg({'Dataset': ['count', list], 'Documents': 'sum'})
         dataframe_grouped['Creation_Date_Placeholder'] = dataframe_grouped.index.strftime('%Y-%m-01')
         dataframe_grouped.reset_index(drop=True, inplace=True)
         dataframe_grouped.columns = ['Total_Datasets', 'Datasets', 'Total_Documents', 'Creation_Date_Placeholder']
